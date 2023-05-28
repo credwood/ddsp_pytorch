@@ -3,6 +3,7 @@ import torch.nn as nn
 from .core import mlp, gru, scale_function, remove_above_nyquist, upsample
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from .core import resample
+from encoders import MfccTimeDistributedRnnEncoder, EncoderCOnfig
 import math
 
 
@@ -38,14 +39,15 @@ class Reverb(nn.Module):
 
 class DDSP(nn.Module):
     def __init__(self, hidden_size, n_harmonic, n_bands, sampling_rate,
-                 block_size, encoder=None, decoder=None):
+                 block_size, z_dims=16, encoder=MfccTimeDistributedRnnEncoder, decoder=None):
         super().__init__()
         self.register_buffer("sampling_rate", torch.tensor(sampling_rate))
         self.register_buffer("block_size", torch.tensor(block_size))
-
-        self.in_mlps = nn.ModuleList([mlp(1, hidden_size, 3)] * 2)
-        self.gru = gru(2, hidden_size)
-        self.out_mlp = mlp(hidden_size + 2, hidden_size, 3)
+        encoder = encoder(*encoder_args)
+        self.encoder = encoder
+        self.in_mlps = nn.ModuleList([mlp(1, hidden_size, 3)] * 2, mlp(z_dims, hidden_size, 3))
+        self.gru = gru(3, hidden_size)
+        self.out_mlp = mlp(hidden_size*4, hidden_size, 3)
 
         self.proj_matrices = nn.ModuleList([
             nn.Linear(hidden_size, n_harmonic + 1),
@@ -57,12 +59,14 @@ class DDSP(nn.Module):
         self.register_buffer("cache_gru", torch.zeros(1, 1, hidden_size))
         self.register_buffer("phase", torch.zeros(1))
 
-    def forward(self, pitch, loudness):
-        hidden = torch.cat([
+    def forward(self, s, pitch, loudness):
+        z = self.encoder(s)
+        inputs = torch.cat([
             self.in_mlps[0](pitch),
             self.in_mlps[1](loudness),
+            self.in_mlps[2](z),
         ], -1)
-        hidden = torch.cat([self.gru(hidden)[0], pitch, loudness], -1)
+        hidden = torch.cat([inputs, self.gru(inputs)[0]], -1)
         hidden = self.out_mlp(hidden)
 
         # harmonic part

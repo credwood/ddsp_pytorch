@@ -42,11 +42,11 @@ def mean_std_loudness(dataset):
 
 def multiscale_fft(signal, scales, overlap):
     stfts = []
-    for s in scales:
+    for s, o in zip(scales, overlap):
         S = torch.stft(
             signal,
             s,
-            int(s * (1 - overlap)),
+            int(s * (1 - o)),
             s,
             torch.hann_window(s).to(signal),
             True,

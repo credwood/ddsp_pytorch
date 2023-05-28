@@ -3,6 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .core import resample, ensure_4d, inv_ensure_4d
 import torchaudio.transforms as T
+from effortless_config import Config
+
+class EncoderConfig(Config):
+    rnn_channels=512,
+    rnn_type='gru',
+    z_dims=16,
+    z_time_steps=250,
+    mfcc_bins=30,
+    sample_rate=16000,
 
 class ZEncoder(nn.Module):
     def __init__(self, time_steps):
@@ -23,12 +32,13 @@ class ZEncoder(nn.Module):
         raise NotImplementedError
 
 class MfccTimeDistributedRnnEncoder(ZEncoder):
+    """Use MFCCs as latent variables, distribute across timesteps."""
     def __init__(self,
                rnn_channels=512,
                rnn_type='gru',
-               z_dims=32,
+               z_dims=16,
                z_time_steps=250,
-               mfcc_bins=13,
+               mfcc_bins=30,
                sample_rate=16000,
                **kwargs):
         super().__init__(z_time_steps)
@@ -78,13 +88,11 @@ class MfccTimeDistributedRnnEncoder(ZEncoder):
     def forward(self, audio):
         z = self.mfcc(audio)
         num_dims = len(z.shape)
-        print(z.shape)
         z = ensure_4d(z)
         z = self.instance_norm(z)
         z = inv_ensure_4d(z, num_dims)
         z = torch.einsum("bct->btc", z)
         z, _ = self.rnn(z)
         z = self.out(z)
-        print(z.shape)
         return z
 

@@ -1,5 +1,5 @@
 data:
-  data_location: /slow-2/georges/dataset-urmp-wav
+  data_location: /Users/red/projects/ddsp_pytorch
   extension: "wav"
 
 preprocess:
@@ -19,4 +19,4 @@ model:
 
 train:
   scales: [4096, 2048, 1024, 512, 256, 128]
-  overlap: .75
+  overlap: [0.75, 0.75, 0.75, 0.75, 0.75, 0.75]
