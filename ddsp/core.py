@@ -6,6 +6,23 @@ import librosa as li
 import crepe
 import math
 
+def ensure_4d(x):
+    """Add extra dimensions to make sure tensor has height and width."""
+    if len(x.shape) == 2:
+      return x[:, None, None, :]
+    elif len(x.shape) == 3:
+      return x[:, :, None, :]
+    else:
+      return x
+
+def inv_ensure_4d(x, n_dims):
+    """Remove excess dims, inverse of ensure_4d() function."""
+    if n_dims == 2:
+      return x[:, 0, 0, :]
+    if n_dims == 3:
+      return x[:, :, 0, :]
+    else:
+      return x
 
 def safe_log(x):
     return torch.log(x + 1e-7)

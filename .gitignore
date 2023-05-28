@@ -4,3 +4,5 @@
 *__pycache__*
 export/*
 preprocessed/*
+*.m4a
+*.wav
