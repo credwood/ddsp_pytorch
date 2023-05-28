@@ -6,12 +6,12 @@ import torchaudio.transforms as T
 from effortless_config import Config
 
 class EncoderConfig(Config):
-    rnn_channels=512,
-    rnn_type='gru',
-    z_dims=16,
-    z_time_steps=250,
-    mfcc_bins=30,
-    sample_rate=16000,
+    rnn_channels = 512
+    rnn_type ='gru'
+    z_dims = 16
+    z_time_steps = 400
+    mfcc_bins = 30
+    sample_rate = 16000
 
 class ZEncoder(nn.Module):
     def __init__(self, time_steps):

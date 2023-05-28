@@ -5,17 +5,24 @@ data:
 preprocess:
   sampling_rate: &samplingrate 16000
   signal_length: &signallength 64000
-  block_size: &blocksize 160 # must be a power of 2 if using realtime
+  block_size: &blocksize 256 # must be a power of 2 if using realtime
 
   oneshot: false # crop every audio file to exactly signal length
   out_dir: ./preprocessed/
 
 model:
-  hidden_size: 512
+  hidden_size: &512
   n_harmonic: 100
   n_bands: 65
   sampling_rate: *samplingrate
   block_size: *blocksize
+  encoder: 
+    rnn_channels: *hidden_size
+    rnn_type: 'gru'
+    z_dims: 16
+    z_time_steps: 250 #signallength/blocksize
+    mfcc_bins: 30
+    sample_rate: *samplingrate
 
 train:
   scales: [4096, 2048, 1024, 512, 256, 128]

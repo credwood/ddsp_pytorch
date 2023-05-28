@@ -3,7 +3,7 @@ import torch.nn as nn
 from .core import mlp, gru, scale_function, remove_above_nyquist, upsample
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from .core import resample
-from encoders import MfccTimeDistributedRnnEncoder, EncoderCOnfig
+from encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
 import math
 
 
@@ -39,11 +39,14 @@ class Reverb(nn.Module):
 
 class DDSP(nn.Module):
     def __init__(self, hidden_size, n_harmonic, n_bands, sampling_rate,
-                 block_size, z_dims=16, encoder=MfccTimeDistributedRnnEncoder, decoder=None):
+                 block_size, z_dims=16, encoder=MfccTimeDistributedRnnEncoder, encoder_config=None,decoder=None):
         super().__init__()
         self.register_buffer("sampling_rate", torch.tensor(sampling_rate))
         self.register_buffer("block_size", torch.tensor(block_size))
-        encoder = encoder(*encoder_args)
+        if encoder_config is None:
+            encoder = encoder(**dict(EncoderConfig))
+        else:
+            encoder = encoder(**dict(encoder_config))
         self.encoder = encoder
         self.in_mlps = nn.ModuleList([mlp(1, hidden_size, 3)] * 2, mlp(z_dims, hidden_size, 3))
         self.gru = gru(3, hidden_size)
