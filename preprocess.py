@@ -29,7 +29,7 @@ def preprocess(f, sampling_rate, block_size, signal_length, oneshot, **kwargs):
     x = x.reshape(-1, signal_length)
     pitch = pitch.reshape(x.shape[0], -1)
     loudness = loudness.reshape(x.shape[0], -1)
-
+    
     return x, pitch, loudness
 
 

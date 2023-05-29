@@ -9,7 +9,7 @@ class EncoderConfig(Config):
     rnn_channels = 512
     rnn_type ='gru'
     z_dims = 16
-    z_time_steps = 400
+    z_time_steps = 250
     mfcc_bins = 30
     sample_rate = 16000
 
@@ -69,6 +69,7 @@ class MfccTimeDistributedRnnEncoder(ZEncoder):
                 'overlap': 0.75
             }
         }
+        self.z_time_steps = z_time_steps
         self.fft_size = self.z_audio_spec[str(z_time_steps)]['fft_size']
         self.overlap = self.z_audio_spec[str(z_time_steps)]['overlap']
         self.instance_norm = nn.InstanceNorm2d(mfcc_bins, affine=True)
@@ -93,6 +94,7 @@ class MfccTimeDistributedRnnEncoder(ZEncoder):
         z = inv_ensure_4d(z, num_dims)
         z = torch.einsum("bct->btc", z)
         z, _ = self.rnn(z)
+        assert z.shape[1] <= self.z_time_steps + 1, "timestep too large"
         z = self.out(z)
-        return z
+        return z[:, :self.z_time_steps, :]
 

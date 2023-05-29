@@ -75,6 +75,7 @@ for e in tqdm(range(epochs)):
         l = l.unsqueeze(-1).to(device)
 
         l = (l - mean_loudness) / std_loudness
+        #p = 
 
         y = model(p, l).squeeze(-1)
 
