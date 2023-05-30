@@ -69,6 +69,8 @@ def main():
     step = 0
     epochs = int(np.ceil(args.STEPS / len(dataloader)))
 
+    model.train()
+
     for e in tqdm(range(epochs)):
         for s, p, l in dataloader:
             s = s.to(device)
