@@ -17,7 +17,7 @@ class args(Config):
     CONFIG = "config.yaml"
     NAME = "debug"
     ROOT = "runs"
-    STEPS = 500000
+    STEPS = 20000
     BATCH = 16
     START_LR = 1e-3
     STOP_LR = 1e-4
@@ -110,7 +110,7 @@ def main():
             n_element += 1
             mean_loss += (loss.item() - mean_loss) / n_element
 
-        if not e % 10:
+        if not e % 2:
             writer.add_scalar("lr", schedule(e), e)
             writer.add_scalar("reverb_decay", model.reverb.decay.item(), e)
             writer.add_scalar("reverb_wet", model.reverb.wet.item(), e)
@@ -135,3 +135,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

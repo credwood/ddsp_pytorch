@@ -1,5 +1,5 @@
 data:
-  data_location: /Users/red/projects/ddsp_pytorch
+  data_location: ../drive/MyDrive/audio_ddsp
   extension: "wav"
 
 preprocess:
@@ -8,7 +8,7 @@ preprocess:
   block_size: &blocksize 256 # must be a power of 2 if using realtime
 
   oneshot: false # crop every audio file to exactly signal length
-  out_dir: /preprocessed
+  out_dir: ../drive/MyDrive/preprocessed
 
 model:
   hidden_size: &hidden_size 512

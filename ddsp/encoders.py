@@ -97,4 +97,3 @@ class MfccTimeDistributedRnnEncoder(ZEncoder):
         assert z.shape[1] <= self.z_time_steps + 1, "timestep too large"
         z = self.out(z)
         return z[:, :self.z_time_steps, :]
-

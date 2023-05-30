@@ -59,6 +59,8 @@ class RnnFcDecoder(nn.Module):
                 self.mlp_in[0](pitch),
                 self.mlp_in[1](loudness),
             ], -1)
-        hidden = torch.cat([inputs, self.rnn(inputs)[0]], -1)
+        hidden = self.rnn(inputs)[0]
+        hidden = torch.cat([inputs, hidden], -1)
         hidden = self.mlp_out(hidden)
         return self.decoders[0](hidden), self.decoders[1](hidden)
+    
