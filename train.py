@@ -79,7 +79,7 @@ def main():
             p = p.unsqueeze(-1).to(device)
             l = l.unsqueeze(-1).to(device)
 
-            l = (l - mean_loudness) / std_loudness
+            #l = (l - mean_loudness) / std_loudness this seems to produce worse results than no standardization
             #p = 
 
             y = model(s, p, l).squeeze(-1)
