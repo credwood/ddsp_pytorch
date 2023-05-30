@@ -112,7 +112,7 @@ def main():
             n_element += 1
             mean_loss += (loss.item() - mean_loss) / n_element
 
-        if not e % 2:
+        if not e % 10 or e == epochs-1:
             writer.add_scalar("lr", schedule(e), e)
             writer.add_scalar("reverb_decay", model.reverb.decay.item(), e)
             writer.add_scalar("reverb_wet", model.reverb.wet.item(), e)
@@ -121,7 +121,7 @@ def main():
                 best_loss = mean_loss
                 torch.save(
                     model.state_dict(),
-                    path.join(args.ROOT, args.NAME, "state.pth"),
+                    path.join(args.ROOT, args.NAME, f"state{e}{mean_loss}.pth"),
                 )
 
             mean_loss = 0

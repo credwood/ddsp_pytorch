@@ -47,8 +47,8 @@ class Autoencoder(nn.Module):
         self.encoder = encoder
         self.decoder = decoder(**dict(decoder_config))
     
-    def forward(self, p, l, s):
-        if self.encoder is not None:
+    def forward(self, p, l, s, encoder_out=True):
+        if self.encoder is not None and encoder_out:
             z = self.encoder(s)
             return self.decoder(p, l, z)
         else:
@@ -71,8 +71,8 @@ class DDSP(nn.Module):
         self.reverb = Reverb(sampling_rate, sampling_rate)
 
         
-    def forward(self, s, pitch, loudness):
-        amp_param, noise_param = self.autoencoder(pitch, loudness, s)
+    def forward(self, s, pitch, loudness, encoder_out=True):
+        amp_param, noise_param = self.autoencoder(pitch, loudness, s, encoder_out=encoder_out)
 
         # harmonic part
         param = scale_function(amp_param)

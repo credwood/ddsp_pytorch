@@ -44,13 +44,13 @@ class RnnFcDecoder(nn.Module):
                 nn.Linear(hidden_size, n_bands)]
             )
 
-    def forward(self, pitch, loudness, z):
+    def forward(self, pitch, loudness, z, encoder_out=True):
         """
         z: latent z, shape [batch_size, seq_len, mcff_num]
         p: pitch, shape [batch_size, seq_len, 1]
         l: loudness, shape [batch_size, seq_len, 1]
         """
-        if z is not None and self.encoder_out:
+        if z is not None and self.encoder_out and encoder_out:
             inputs = torch.cat([
                 self.mlp_in[0](pitch),
                 self.mlp_in[1](loudness),
