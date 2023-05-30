@@ -24,8 +24,8 @@ class RnnFcDecoder(nn.Module):
                 mlp(1,mlp_ch, layers_per_stack),
                 mlp(z_dims,mlp_ch, layers_per_stack)]
             )
-            self.rnn = gru(2+z_dims, hidden_size)
-            self.mlp_out = mlp(hidden_size+2+z_dims, hidden_size, layers_per_stack)
+            self.rnn = gru(3, hidden_size)
+            self.mlp_out = mlp(hidden_size*4, hidden_size, layers_per_stack)
             self.decoders = nn.ModuleList([
                 nn.Linear(hidden_size, n_harmonics+n_amp), 
                 nn.Linear(hidden_size, n_bands)]
@@ -36,7 +36,7 @@ class RnnFcDecoder(nn.Module):
                 mlp(1,mlp_ch, layers_per_stack),]
             )
             self.rnn = gru(2, hidden_size)
-            self.mlp_out = mlp(hidden_size+2, hidden_size, layers_per_stack)
+            self.mlp_out = mlp(hidden_size*3, hidden_size, layers_per_stack)
             self.decoders = nn.ModuleList([
                 nn.Linear(hidden_size, n_harmonics+n_amp), 
                 nn.Linear(hidden_size, n_bands)]
@@ -59,6 +59,6 @@ class RnnFcDecoder(nn.Module):
                 self.mlp_in[0](pitch),
                 self.mlp_in[1](loudness),
             ], -1)
-        hidden = torch.cat([inputs, self.gru(inputs)[0]], -1)
+        hidden = torch.cat([inputs, self.rnn(inputs)[0]], -1)
         hidden = self.mlp_out(hidden)
         return self.decoders[0](hidden), self.decoders[1](hidden)

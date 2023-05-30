@@ -9,7 +9,7 @@ import math
 def ensure_4d(x):
     """Add extra dimensions to make sure tensor has height and width."""
     if len(x.shape) == 2:
-      return x[:, None, None, :]
+      return x[:, :, None, None]
     elif len(x.shape) == 3:
       return x[:, :, None, :]
     else:
@@ -18,7 +18,7 @@ def ensure_4d(x):
 def inv_ensure_4d(x, n_dims):
     """Remove excess dims, inverse of ensure_4d() function."""
     if n_dims == 2:
-      return x[:, 0, 0, :]
+      return x[:, :, 0, 0]
     if n_dims == 3:
       return x[:, :, 0, :]
     else:

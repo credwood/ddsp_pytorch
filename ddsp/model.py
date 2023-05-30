@@ -47,7 +47,7 @@ class Autoencoder(nn.Module):
         self.encoder = encoder
         self.decoder = decoder(**dict(decoder_config))
     
-    def forward(self, p, s, l):
+    def forward(self, p, l, s):
         if self.encoder is not None:
             z = self.encoder(s)
             return self.decoder(p, l, z)

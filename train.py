@@ -72,6 +72,8 @@ def main():
     for e in tqdm(range(epochs)):
         for s, p, l in dataloader:
             s = s.to(device)
+            if len(s.shape) == 1:
+                s = s.unsqueeze(0)
             p = p.unsqueeze(-1).to(device)
             l = l.unsqueeze(-1).to(device)
 
