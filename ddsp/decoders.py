@@ -6,6 +6,8 @@ from effortless_config import Config
 class DecoderConfig(Config):
     hidden_size=512
     mlp_ch=512
+    encoder_out=True
+    z_dims=16
     layers_per_stack=3
     n_harmonics=100
     n_bands=65
