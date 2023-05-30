@@ -15,30 +15,31 @@ class DecoderConfig(Config):
 class RnnFcDecoder(nn.Module):
     def __init__(self, hidden_size=512, mlp_ch=512, encoder_out=True, z_dims=16, 
                  layers_per_stack=3, n_harmonics=100, n_bands=65, n_amp=1):
+        super().__init__()
         
         self.encoder_out = encoder_out
         if encoder_out:
-            self.mlp_in = nn.ModuleList(
+            self.mlp_in = nn.ModuleList([
                 mlp(1,mlp_ch, layers_per_stack),
                 mlp(1,mlp_ch, layers_per_stack),
-                mlp(z_dims,mlp_ch, layers_per_stack)
+                mlp(z_dims,mlp_ch, layers_per_stack)]
             )
             self.rnn = gru(2+z_dims, hidden_size)
             self.mlp_out = mlp(hidden_size+2+z_dims, hidden_size, layers_per_stack)
-            self.decoders = nn.ModuleList(
+            self.decoders = nn.ModuleList([
                 nn.Linear(hidden_size, n_harmonics+n_amp), 
-                nn.Linear(hidden_size, n_bands)
+                nn.Linear(hidden_size, n_bands)]
             )
         else:
-            self.mlp_in = nn.ModuleList(
+            self.mlp_in = nn.ModuleList([
                 mlp(1,mlp_ch, layers_per_stack),
-                mlp(1,mlp_ch, layers_per_stack),
+                mlp(1,mlp_ch, layers_per_stack),]
             )
             self.rnn = gru(2, hidden_size)
             self.mlp_out = mlp(hidden_size+2, hidden_size, layers_per_stack)
-            self.decoders = nn.ModuleList(
+            self.decoders = nn.ModuleList([
                 nn.Linear(hidden_size, n_harmonics+n_amp), 
-                nn.Linear(hidden_size, n_bands)
+                nn.Linear(hidden_size, n_bands)]
             )
 
     def forward(self, pitch, loudness, z):

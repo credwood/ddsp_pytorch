@@ -3,8 +3,8 @@ import torch.nn as nn
 from .core import mlp, gru, scale_function, remove_above_nyquist, upsample
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from .core import resample
-from encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
-from decoders import RnnFcDecoder, DecoderConfig
+from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
+from .decoders import RnnFcDecoder, DecoderConfig
 import math
 
 
@@ -41,6 +41,7 @@ class Reverb(nn.Module):
 class Autoencoder(nn.Module):
     def __init__(self, encoder=MfccTimeDistributedRnnEncoder, encoder_config=EncoderConfig, 
                  decoder=RnnFcDecoder, decoder_config=DecoderConfig):
+        super().__init__()
         if encoder is not None:
             encoder = encoder(**dict(encoder_config))   
         self.encoder = encoder
