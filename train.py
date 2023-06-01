@@ -17,7 +17,7 @@ class args(Config):
     CONFIG = "config.yaml"
     NAME = "debug"
     ROOT = "runs"
-    STEPS = 20000
+    STEPS = 200000
     BATCH = 16
     START_LR = 1e-3
     STOP_LR = 1e-4
@@ -118,6 +118,7 @@ def main():
             writer.add_scalar("reverb_wet", model.reverb.wet.item(), e)
             # scheduler.step()
             if mean_loss < best_loss:
+                print(mean_loss)
                 best_loss = mean_loss
                 torch.save(
                     model.state_dict(),
