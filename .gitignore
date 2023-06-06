@@ -7,4 +7,5 @@ preprocessed/*
 *.m4a
 *.wav
 dataset4/
+dataset4_copy/
 idmt_dataset4/

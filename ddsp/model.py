@@ -3,7 +3,7 @@ import torch.nn as nn
 from .core import mlp, gru, scale_function, remove_above_nyquist, upsample
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from .core import resample
-from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
+from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig, ResNetAutoencoder, ResNetEncoderConfig
 from .decoders import RnnFcDecoder, DecoderConfig
 import math
 
@@ -56,8 +56,8 @@ class Autoencoder(nn.Module):
 
 
 class DDSP(nn.Module):
-    def __init__(self, hidden_size, sampling_rate,
-                 block_size, autoencoder=Autoencoder
+    def __init__(self, hidden_size=512, sampling_rate=16000,
+                 block_size=256, autoencoder=ResNetAutoencoder
                  ):
         super().__init__()
         self.register_buffer("sampling_rate", torch.tensor(sampling_rate))
@@ -67,22 +67,33 @@ class DDSP(nn.Module):
         self.register_buffer("cache_gru", torch.zeros(1, 1, hidden_size))
         self.register_buffer("phase", torch.zeros(1))
 
-        self.autoencoder = autoencoder()
+        if autoencoder == ResNetAutoencoder:
+            self.autoencoder = ResNetAutoencoder(**dict(ResNetEncoderConfig))
+        else:
+            self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
 
         
-    def forward(self, s, pitch, loudness):
-        amp_param, noise_param = self.autoencoder(pitch, loudness, s)
+    def forward(self, s, pitch=None, loudness=None):
+        if isinstance(self.autoencoder, ResNetAutoencoder):
+            pitch, amp_param, noise_param = self.autoencoder(s)
+            multi=True
+            #pitch_dist = nn.functional.softplus(pitch)
+            #pitch = (pitch*pitch_dist).sum(-1)
+        else:
+            amp_param, noise_param = self.autoencoder(pitch, loudness, s)
+            multi=False
 
         # harmonic part
         param = scale_function(amp_param)
         total_amp = param[..., :1]
         amplitudes = param[..., 1:]
-
+        
         amplitudes = remove_above_nyquist(
             amplitudes,
             pitch,
             self.sampling_rate,
+            multi=multi, 
         )
         amplitudes /= amplitudes.sum(-1, keepdim=True)
         amplitudes *= total_amp
@@ -90,7 +101,7 @@ class DDSP(nn.Module):
         amplitudes = upsample(amplitudes, self.block_size)
         pitch = upsample(pitch, self.block_size)
 
-        harmonic = harmonic_synth(pitch, amplitudes, self.sampling_rate)
+        harmonic = harmonic_synth(pitch, amplitudes, self.sampling_rate, multi=multi)
 
         # noise part
         param = scale_function(noise_param - 5)

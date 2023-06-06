@@ -6,6 +6,33 @@ import librosa as li
 import crepe
 import math
 
+def ensure_4d_resnet(x):
+  """Add extra dimensions to make sure tensor has height and width."""
+  if len(x.shape) == 2:
+      return x[:, None, None, :]
+  elif len(x.shape) == 3:
+      return x[:, :, None, :]
+  else:
+      return x
+
+def inv_ensure_4d_resnet(x, n_dims):
+  """Remove excess dims, inverse of ensure_4d() function."""
+  if n_dims == 2:
+      return x[:, 0, 0, :]
+  if n_dims == 3:
+      return x[:, :, 0, :]
+  else:
+      return x
+
+def inv_ensure_4d(x, n_dims):
+  """Remove excess dims, inverse of ensure_4d() function."""
+  if n_dims == 2:
+    return x[:, 0, 0, :]
+  if n_dims == 3:
+    return x[:, :, 0, :]
+  else:
+    return x
+
 def ensure_4d(x):
     """Add extra dimensions to make sure tensor has height and width."""
     if len(x.shape) == 2:
@@ -27,6 +54,8 @@ def inv_ensure_4d(x, n_dims):
 def safe_log(x):
     return torch.log(x + 1e-7)
 
+def calc_same_pad(i, k, s, d=1):
+    return max((math.ceil(i / s) - 1) * s + (k - 1) * d + 1 - i, 0)
 
 @torch.no_grad()
 def mean_std_loudness(dataset):
@@ -83,11 +112,17 @@ def upsample(signal, factor):
     return signal.permute(0, 2, 1)
 
 
-def remove_above_nyquist(amplitudes, pitch, sampling_rate):
+def remove_above_nyquist(amplitudes, pitch, sampling_rate, multi=False):
+    if multi:
+       return remove_above_nyquist_multi(amplitudes, pitch, sampling_rate)
     n_harm = amplitudes.shape[-1]
     pitches = pitch * torch.arange(1, n_harm + 1).to(pitch)
     aa = (pitches < sampling_rate / 2).float() + 1e-4
     return amplitudes * aa
+
+def remove_above_nyquist_multi(amplitudes, pitch, sampling_rate):
+    aa = (pitch < sampling_rate / 2).float() + 1e-4
+    return torch.einsum("btp,bta->bta", aa, amplitudes)
 
 
 def scale_function(x):
@@ -149,12 +184,20 @@ def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
 
 
-def harmonic_synth(pitch, amplitudes, sampling_rate):
+def harmonic_synth(pitch, amplitudes, sampling_rate, multi=False):
+    if multi:
+       return harmonic_synth_multi(pitch, amplitudes, sampling_rate)
     n_harmonic = amplitudes.shape[-1]
     omega = torch.cumsum(2 * math.pi * pitch / sampling_rate, 1)
     omegas = omega * torch.arange(1, n_harmonic + 1).to(omega)
     signal = (torch.sin(omegas) * amplitudes).sum(-1, keepdim=True)
     return signal
+
+def harmonic_synth_multi(pitch, amplitudes, sampling_rate):
+    omega = torch.cumsum(2 * math.pi * pitch / sampling_rate, 1)
+    omega = torch.sin(omega)
+    signal = torch.einsum("bfp,bfa->bf", omega, amplitudes)
+    return signal.unsqueeze(-1)
 
 
 def amp_to_impulse_response(amp, target_size):
