@@ -203,7 +203,11 @@ def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
 
 def normalize_to_midi(t):
-   return t
+   midi_func = lambda n: 440*2**((n-69)/12)
+   midi = torch.tensor([midi_func(n) for n in range(t.shape[-1])])
+   midi = midi.repeat(t.shape[0], t.shape[1], 1)
+   return midi.to(t)
+   
 
 def harmonic_synth(pitch, amplitudes, sampling_rate, multi=False):
     if multi:

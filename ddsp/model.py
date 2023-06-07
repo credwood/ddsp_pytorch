@@ -80,11 +80,13 @@ class DDSP(nn.Module):
             amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             multi=True
             pitch_dist = nn.functional.softplus(pitch)
-            pitch_midi = normalize_to_midi(pitch)
-            pitch = pitch_midi*pitch_dist
+            pitch = normalize_to_midi(pitch)
+            print(pitch.shape, "pitch shape")
             if top_k_pitches:
-                pitch, top_k = torch.topk(pitch, k=10, sorted=False)
+                _, top_k = torch.topk(pitch_dist, k=10, sorted=False)
+                pitch = pitch[:, :, top_k[-1][-1]]
                 amp_param = amp_param[:, :, top_k[-1][-1]]
+
         else:
             amp_param, noise_param = self.autoencoder(pitch, loudness, s)
             multi=False
@@ -104,9 +106,7 @@ class DDSP(nn.Module):
         amplitudes *= total_amp
 
         amplitudes = upsample(amplitudes.float(), self.block_size)
-        print(amplitudes.shape)
         pitch = upsample(pitch.float(), self.block_size)
-        print(pitch.shape)
 
         harmonic = harmonic_synth(pitch, amplitudes, self.sampling_rate, multi=multi)
 
