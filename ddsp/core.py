@@ -113,7 +113,7 @@ def upsample(signal, factor):
         return signal.permute(0, 2, 1)
     
     assert len(signal.shape) == 4, "signal must have shape 3 or 4"
-    
+
     signal = torch.einsum("btpa->bpat", signal)
     signal = nn.functional.interpolate(signal, size=signal.shape[-1] * factor)
     return torch.einsum("bpat->btpa", signal)
@@ -198,7 +198,7 @@ def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
 
 def normalize_to_midi(t):
-   pass
+   return t
 
 def harmonic_synth(pitch, amplitudes, sampling_rate, multi=False):
     if multi:
