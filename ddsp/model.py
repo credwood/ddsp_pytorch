@@ -81,7 +81,6 @@ class DDSP(nn.Module):
             multi=True
             pitch_dist = nn.functional.softplus(pitch)
             pitch = normalize_to_midi(pitch)
-            print(pitch.shape, "pitch shape")
             if top_k_pitches:
                 _, top_k = torch.topk(pitch_dist, k=10, sorted=False)
                 pitch = pitch[:, :, top_k[-1][-1]]
