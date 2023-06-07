@@ -16,9 +16,9 @@ import numpy as np
 class args(Config):
     CONFIG = "config.yaml"
     NAME = "debug"
-    ROOT = "runs"
+    ROOT = "../drive/MyDrive/runs_resnet"
     STEPS = 200000
-    BATCH = 16
+    BATCH = 1
     START_LR = 1e-3
     STOP_LR = 1e-4
     DECAY_OVER = 400000

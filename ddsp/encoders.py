@@ -355,13 +355,10 @@ class ResNet(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
 
-        print(x.shape)
         x = self.layer1(x)
         print(x.shape)
         x = self.layer2(x)
-        print(x.shape)
         x = self.layer3(x)
-        print(x.shape)
         #x = self.layer4(x)
 
         return x
@@ -398,9 +395,8 @@ class ResNetAutoencoder(nn.Module):
         }
         self.size = size
         self.time_steps = time_steps
-        ch, _ = size_dict[size]
-        layers = [ch, 2*ch, 4*ch]
-        self.resnet = ResNet(Bottleneck, layers, time_steps=time_steps, n_mels=n_mels)
+        ch, num_layers = size_dict[size]
+        self.resnet = ResNet(Bottleneck, num_layers, time_steps=time_steps, n_mels=n_mels)
         self.out = nn.ModuleList([nn.Linear(1024*128, pitch),
                                   nn.Linear(1024*128, amplitude),
                                   nn.Linear(1024*128, noise_mag)
