@@ -126,8 +126,8 @@ def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, d
         in_planes,
         out_planes,
         kernel_size=3,
-        stride=stride,
-        padding=dilation,
+        stride=1,
+        padding="same",
         groups=groups,
         bias=False,
         dilation=dilation,
@@ -138,7 +138,7 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
     #pad_in = calc_same_pad(in_planes, 3, stride)
     #pad_out = calc_same_pad(out_planes, 3, stride)
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, padding="same", stride=1, bias=False)
 
 
 class BasicBlock(nn.Module):
@@ -281,10 +281,10 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         #pad_in = calc_same_pad(n_mels, 7, 2)
         #pad_out = calc_same_pad(time_steps, 7, 2)
-        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=1, padding="same", bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
@@ -412,9 +412,9 @@ class ResNetAutoencoder(nn.Module):
         mels = mels[:, :, :self.time_steps]
         mels = mels[:, None, :, :]
         x = self.resnet(mels)
-        x = rearrange(x, "b c m t -> b (c m) t")
-        x = self.upsample(x)
-        x = rearrange(x, "b cm t -> b t cm")
+        x = rearrange(x, "b c m t -> b t (c m)")
+        #x = self.upsample(x)
+        #x = rearrange(x, "b cm t -> b t cm")
         out = []
         for index, decoder in enumerate(self.out):
             out.append(decoder(x))

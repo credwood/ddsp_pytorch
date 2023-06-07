@@ -79,7 +79,7 @@ class DDSP(nn.Module):
             pitch, amp_param, noise_param = self.autoencoder(s)
             multi=True
             #pitch_dist = nn.functional.softplus(pitch)
-            #pitch = (pitch*pitch_dist).sum(-1)
+            #pitch = pitch*pitch_dist
         else:
             amp_param, noise_param = self.autoencoder(pitch, loudness, s)
             multi=False
