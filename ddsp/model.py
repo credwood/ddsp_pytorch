@@ -74,7 +74,7 @@ class DDSP(nn.Module):
         self.reverb = Reverb(sampling_rate, sampling_rate)
 
         
-    def forward(self, s, pitch=None, loudness=None):
+    def forward(self, s, pitch=None, loudness=None, top_k_pitches=True):
         if isinstance(self.autoencoder, ResNetAutoencoder):
             pitch, amp_param, noise_param = self.autoencoder(s)
             amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
@@ -82,9 +82,9 @@ class DDSP(nn.Module):
             pitch_dist = nn.functional.softplus(pitch)
             pitch_midi = normalize_to_midi(pitch)
             pitch = pitch_midi*pitch_dist
-            pitch, top_k = torch.topk(pitch, k=10, sorted=False)
-            amp_param = amp_param[:, :, top_k[-1][-1]]
-            print(pitch.shape, amp_param.shape)
+            if top_k_pitches:
+                pitch, top_k = torch.topk(pitch, k=10, sorted=False)
+                amp_param = amp_param[:, :, top_k[-1][-1]]
         else:
             amp_param, noise_param = self.autoencoder(pitch, loudness, s)
             multi=False

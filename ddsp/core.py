@@ -109,15 +109,20 @@ def resample(x, factor: int):
 def upsample(signal, factor):
     if len(signal.shape) == 3:
         signal = signal.permute(0, 2, 1)
-        signal = nn.functional.interpolate(signal, size=signal.shape[-1] * factor)
+        signal = nn.functional.interpolate(signal, size=signal.shape[-1] * factor, mode="linear")
         return signal.permute(0, 2, 1)
     
-    assert len(signal.shape) == 4, "signal must have shape 3 or 4"
+    assert len(signal.shape) == 4, "signal must have 3 or 4 dims"
 
     signal = torch.einsum("btpa->bpat", signal)
-    signal = nn.functional.interpolate(signal, size=signal.shape[-1] * factor)
-    return torch.einsum("bpat->btpa", signal)
-
+    stack = []
+    for num in range(signal.shape[0]):
+       interp = nn.functional.interpolate(signal[num], size=signal.shape[-1] * factor, mode="linear")
+       stack.append(interp)
+    
+    stack = torch.stack(stack)
+    return torch.einsum("bpat->btpa", stack)
+    
 
 def remove_above_nyquist(amplitudes, pitch, sampling_rate, multi=False):
     if multi:
@@ -211,12 +216,12 @@ def harmonic_synth(pitch, amplitudes, sampling_rate, multi=False):
 
 def harmonic_synth_multi(pitch, amplitudes, sampling_rate):
     """
-    pitch: tensor, shape [b t p]
-    amplitudes: tensor, shape [b t p a]
+    pitch: tensor, shape [b upsampled_signal p]
+    amplitudes: tensor, shape [b upsampled_signal p a]
     """
     omega = torch.cumsum(2 * math.pi * pitch / sampling_rate, 1)
     omega = torch.sin(omega)
-    signal = torch.einsum("bfp,bfa->bf", omega, amplitudes)
+    signal = torch.einsum("bsp,bspa->bs", omega, amplitudes)
     return signal.unsqueeze(-1)
 
 
