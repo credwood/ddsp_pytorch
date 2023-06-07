@@ -61,7 +61,7 @@ def main():
         args.DECAY_OVER,
     )
 
-    # scheduler = torch.optim.lr_scheduler.LambdaLR(opt, schedule)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(opt, schedule)
 
     best_loss = float("inf")
     mean_loss = 0
@@ -104,6 +104,7 @@ def main():
             opt.zero_grad()
             loss.backward()
             opt.step()
+            
 
             writer.add_scalar("loss", loss.item(), step)
 
@@ -116,7 +117,7 @@ def main():
             writer.add_scalar("lr", schedule(e), e)
             writer.add_scalar("reverb_decay", model.reverb.decay.item(), e)
             writer.add_scalar("reverb_wet", model.reverb.wet.item(), e)
-            # scheduler.step()
+            scheduler.step()
             if mean_loss < best_loss:
                 print(mean_loss)
                 best_loss = mean_loss

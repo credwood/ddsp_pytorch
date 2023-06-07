@@ -107,9 +107,16 @@ def resample(x, factor: int):
 
 
 def upsample(signal, factor):
-    signal = signal.permute(0, 2, 1)
+    if len(signal.shape) == 3:
+        signal = signal.permute(0, 2, 1)
+        signal = nn.functional.interpolate(signal, size=signal.shape[-1] * factor)
+        return signal.permute(0, 2, 1)
+    
+    assert len(signal.shape) == 4, "signal must have shape 3 or 4"
+    
+    signal = torch.einsum("btpa->bpat", signal)
     signal = nn.functional.interpolate(signal, size=signal.shape[-1] * factor)
-    return signal.permute(0, 2, 1)
+    return torch.einsum("bpat->btpa", signal)
 
 
 def remove_above_nyquist(amplitudes, pitch, sampling_rate, multi=False):
@@ -121,8 +128,15 @@ def remove_above_nyquist(amplitudes, pitch, sampling_rate, multi=False):
     return amplitudes * aa
 
 def remove_above_nyquist_multi(amplitudes, pitch, sampling_rate):
+    """
+    aplitudes: tensor, shape [b t p a]
+    pitch: tensor, shape [b t p]
+    sampling_rate: int
+    """
     aa = (pitch < sampling_rate / 2).float() + 1e-4
-    return torch.einsum("btp,bta->bta", aa, amplitudes)
+    aa = aa.unsqueeze(-1)
+    aa = aa.repeat(1, 1, 1, amplitudes.shape[-1])
+    return aa * amplitudes
 
 
 def scale_function(x):
@@ -183,6 +197,8 @@ def mlp(in_size, hidden_size, n_layers):
 def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
 
+def normalize_to_midi(t):
+   pass
 
 def harmonic_synth(pitch, amplitudes, sampling_rate, multi=False):
     if multi:
@@ -194,6 +210,10 @@ def harmonic_synth(pitch, amplitudes, sampling_rate, multi=False):
     return signal
 
 def harmonic_synth_multi(pitch, amplitudes, sampling_rate):
+    """
+    pitch: tensor, shape [b t p]
+    amplitudes: tensor, shape [b t p a]
+    """
     omega = torch.cumsum(2 * math.pi * pitch / sampling_rate, 1)
     omega = torch.sin(omega)
     signal = torch.einsum("bfp,bfa->bf", omega, amplitudes)

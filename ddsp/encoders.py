@@ -112,7 +112,7 @@ class MfccTimeDistributedRnnEncoder(ZEncoder):
         z = inv_ensure_4d(z, num_dims)
         z = torch.einsum("bct->btc", z)
         z, _ = self.rnn(z)
-        assert z.shape[1] <= self.z_time_steps + 1, "timestep too large"
+        #assert z.shape[1] <= self.z_time_steps + 1, "timestep too large"
         z = self.out(z)
         return z[:, :self.z_time_steps, :]
 
@@ -397,7 +397,7 @@ class ResNetAutoencoder(nn.Module):
         ch, num_layers = size_dict[size]
         self.resnet = ResNet(Bottleneck, num_layers, time_steps=time_steps, n_mels=n_mels)
         self.out = nn.ModuleList([nn.Linear(1024, pitch),
-                                  nn.Linear(1024, amplitude),
+                                  nn.Linear(1024, amplitude*pitch),
                                   nn.Linear(1024, noise_mag)
                                   ])
         self.upsample = torch.nn.Upsample(size=self.time_steps, mode='linear')
@@ -408,13 +408,10 @@ class ResNetAutoencoder(nn.Module):
         mels = self.spectral_fn(audio)
         mels = safe_log(mels)
         mels = mels[:, :, :self.time_steps]
-        mels = mels[:, :, :, None]
+        mels = mels[:, :, :, None] # adding a width channel
         x = self.resnet(mels)
-        x = rearrange(x, "b m t c -> b t (c m)")
-        out = []
-        for decoder in self.out:
-            out.append(decoder(x))
+        x = rearrange(x, "b m t w -> b t (w m)")
         
-        return tuple(out)
+        return tuple([decoder(x) for decoder in self.out])
         
 

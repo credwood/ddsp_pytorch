@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
-from .core import mlp, gru, scale_function, remove_above_nyquist, upsample
+from .core import scale_function, remove_above_nyquist, upsample, normalize_to_midi
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from .core import resample
 from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig, ResNetAutoencoder, ResNetEncoderConfig
 from .decoders import RnnFcDecoder, DecoderConfig
-import math
+from einops import rearrange
 
 
 class Reverb(nn.Module):
@@ -77,9 +77,11 @@ class DDSP(nn.Module):
     def forward(self, s, pitch=None, loudness=None):
         if isinstance(self.autoencoder, ResNetAutoencoder):
             pitch, amp_param, noise_param = self.autoencoder(s)
+            amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             multi=True
-            #pitch_dist = nn.functional.softplus(pitch)
-            #pitch = pitch*pitch_dist
+            pitch_dist = nn.functional.softplus(pitch)
+            #pitch_midi = normalize_to_midi(pitch)
+            #pitch = pitch_midi*pitch_dist
         else:
             amp_param, noise_param = self.autoencoder(pitch, loudness, s)
             multi=False
@@ -100,6 +102,7 @@ class DDSP(nn.Module):
 
         amplitudes = upsample(amplitudes, self.block_size)
         pitch = upsample(pitch, self.block_size)
+        print(amplitudes.shape, pitch.shape)
 
         harmonic = harmonic_synth(pitch, amplitudes, self.sampling_rate, multi=multi)
 
