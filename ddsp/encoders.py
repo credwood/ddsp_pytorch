@@ -397,9 +397,9 @@ class ResNetAutoencoder(nn.Module):
         ch, _ = size_dict[size]
         layers = [ch, 2*ch, 4*ch]
         self.resnet = ResNet(Bottleneck, layers, time_steps=time_steps, n_mels=n_mels)
-        self.out = nn.ModuleList([nn.Linear(1024*8, pitch),
-                                  nn.Linear(1024*8, amplitude),
-                                  nn.Linear(1024*8, noise_mag)
+        self.out = nn.ModuleList([nn.Linear(1024*128, pitch),
+                                  nn.Linear(1024*128, amplitude),
+                                  nn.Linear(1024*128, noise_mag)
                                   ])
         self.upsample = torch.nn.Upsample(size=self.time_steps, mode='linear')
         
@@ -416,7 +416,7 @@ class ResNetAutoencoder(nn.Module):
         #x = self.upsample(x)
         #x = rearrange(x, "b cm t -> b t cm")
         out = []
-        for index, decoder in enumerate(self.out):
+        for decoder in self.out:
             out.append(decoder(x))
         
         return tuple(out)
