@@ -281,7 +281,7 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         #pad_in = calc_same_pad(n_mels, 7, 2)
         #pad_out = calc_same_pad(time_steps, 7, 2)
-        self.conv1 = nn.Conv2d(n_mels, self.inplanes, kernel_size=7, stride=1, padding="same", bias=False)
+        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=1, padding="same", bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
@@ -400,7 +400,7 @@ class ResNetAutoencoder(nn.Module):
                                   nn.Linear(1024, amplitude*pitch),
                                   nn.Linear(1024, noise_mag)
                                   ])
-        self.upsample = torch.nn.Upsample(size=self.time_steps, mode='linear')
+        self.downsample = nn.Linear(n_mels, 1)
         
     def forward(self, audio):
         assert len(audio.shape) == 2, "audio must have shape batch_size, samples"
@@ -408,9 +408,11 @@ class ResNetAutoencoder(nn.Module):
         mels = self.spectral_fn(audio)
         mels = safe_log(mels)
         mels = mels[:, :, :self.time_steps]
-        mels = mels[:, :, :, None] # adding a width channel
+        mels = mels[:, None, :, :] # adding a channel dim
+        mels = rearrange(mels, "b c m t -> b c t m")
         x = self.resnet(mels)
-        x = rearrange(x, "b m t w -> b t (w m)")
+        x = self.downsample(x)
+        x = rearrange(x, "b c t m -> b t (c m)")
         
         return tuple([decoder(x) for decoder in self.out])
         
