@@ -16,14 +16,14 @@ import numpy as np
 class args(Config):
     CONFIG = "config.yaml"
     NAME = "debug"
-    ROOT = "../drive/MyDrive/runs_resnet_1stride"
+    ROOT = "../drive/MyDrive/runs_resnet_1"
     STEPS = 500000
     BATCH = 64
     START_LR = 8e-4
     STOP_LR = 1e-4
     DECAY_OVER = 400000
     LOAD_FROM_CHECKPOINT = True
-    CHECKPOINT = "../drive/MyDrive/runs_resnet_1/state6609.713998248192556.pth"
+    CHECKPOINT = "../drive/MyDrive/runs_resnet_1/debug/state6609.713998248192556.pth"
 
 def main():
 
@@ -36,8 +36,8 @@ def main():
 
     model = DDSP(**config["model"]).to(device)
 
-    if config.LOAD_FROM_CHECKPOINT:
-        model.load_state_dict(config.CHECKPOINT)
+    if args.LOAD_FROM_CHECKPOINT:
+        model.load_state_dict(torch.load(args.CHECKPOINT))
 
     dataset = Dataset(config["preprocess"]["out_dir"])
 
