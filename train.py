@@ -16,13 +16,13 @@ import numpy as np
 class args(Config):
     CONFIG = "config.yaml"
     NAME = "debug"
-    ROOT = "../drive/MyDrive/runs_resnet_1"
+    ROOT = "../drive/MyDrive/runs_resnet_softmax"
     STEPS = 500000
-    BATCH = 64
-    START_LR = 8e-4
+    BATCH = 16
+    START_LR = 1e-3
     STOP_LR = 1e-4
     DECAY_OVER = 400000
-    LOAD_FROM_CHECKPOINT = True
+    LOAD_FROM_CHECKPOINT = False
     CHECKPOINT = "../drive/MyDrive/runs_resnet_1/debug/state6609.713998248192556.pth"
 
 def main():
