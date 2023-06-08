@@ -57,7 +57,7 @@ class Autoencoder(nn.Module):
 
 class DDSP(nn.Module):
     def __init__(self, hidden_size=512, sampling_rate=16000,
-                 block_size=256, autoencoder=ResNetAutoencoder
+                 block_size=256, n_midi=128, autoencoder=ResNetAutoencoder
                  ):
         super().__init__()
         self.register_buffer("sampling_rate", torch.tensor(sampling_rate))
@@ -72,6 +72,7 @@ class DDSP(nn.Module):
         else:
             self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
+        self.midi_norm = nn.LayerNorm(n_midi)
     
         
     def forward(self, s, pitch=None, loudness=None, top_k_pitches=True):
@@ -79,7 +80,8 @@ class DDSP(nn.Module):
             pitch, amp_param, noise_param = self.autoencoder(s)
             amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             multi=True
-            pitch_dist = nn.functional.softplus(pitch)
+            pitch = self.midi_norm(pitch)
+            pitch_dist = nn.functional.softmax(pitch)
             pitch = normalize_to_midi(pitch)
             if top_k_pitches:
                 _, top_k = torch.topk(pitch_dist, k=3, sorted=False)
