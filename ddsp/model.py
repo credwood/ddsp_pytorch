@@ -95,12 +95,12 @@ class DDSP(nn.Module):
         total_amp = param[..., :1]
         amplitudes = param[..., 1:]
         
-        amplitudes = remove_above_nyquist(
-            amplitudes,
-            pitch,
-            self.sampling_rate,
-            multi=multi, 
-        )
+        #amplitudes = remove_above_nyquist(
+            #amplitudes,
+            #pitch,
+            #self.sampling_rate,
+            #multi=multi, 
+        #)
         amplitudes /= amplitudes.sum(-1, keepdim=True)
         amplitudes *= total_amp
 
