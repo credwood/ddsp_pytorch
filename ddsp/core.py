@@ -225,7 +225,8 @@ def harmonic_synth_multi(pitch, amplitudes, sampling_rate):
     """
     omega = torch.cumsum(2 * math.pi * pitch / sampling_rate, 1)
     omega = torch.sin(omega)
-    signal = torch.einsum("bsp,bspa->bs", omega, amplitudes)
+    signal = torch.einsum("bsp,bspa->bsp", omega, amplitudes)
+    signal = torch.einsum("bsp->bs", signal)
     return signal.unsqueeze(-1)
 
 
