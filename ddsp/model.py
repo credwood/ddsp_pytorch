@@ -82,7 +82,7 @@ class DDSP(nn.Module):
             pitch_dist = nn.functional.softplus(pitch)
             pitch = normalize_to_midi(pitch)
             if top_k_pitches:
-                _, top_k = torch.topk(pitch_dist, k=10, sorted=False)
+                _, top_k = torch.topk(pitch_dist, k=3, sorted=False)
                 pitch = pitch[:, :, top_k[-1][-1]]
                 amp_param = amp_param[:, :, top_k[-1][-1]]
 
@@ -95,17 +95,17 @@ class DDSP(nn.Module):
         total_amp = param[..., :1]
         amplitudes = param[..., 1:]
         
-        #amplitudes = remove_above_nyquist(
-            #amplitudes,
-            #pitch,
-            #self.sampling_rate,
-            #multi=multi, 
-        #)
+        amplitudes = remove_above_nyquist(
+            amplitudes,
+            pitch,
+            self.sampling_rate,
+            multi=multi, 
+        )
         amplitudes /= amplitudes.sum(-1, keepdim=True)
-        amplitudes *= total_amp
+        amplitudes = amplitudes*total_amp
 
-        amplitudes = upsample(amplitudes.float(), self.block_size)
-        pitch = upsample(pitch.float(), self.block_size)
+        amplitudes = upsample(amplitudes, self.block_size)
+        pitch = upsample(pitch, self.block_size)
 
         harmonic = harmonic_synth(pitch, amplitudes, self.sampling_rate, multi=multi)
 
