@@ -72,7 +72,7 @@ class DDSP(nn.Module):
         else:
             self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
-
+    
         
     def forward(self, s, pitch=None, loudness=None, top_k_pitches=True):
         if isinstance(self.autoencoder, ResNetAutoencoder):

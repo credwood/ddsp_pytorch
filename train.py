@@ -19,9 +19,11 @@ class args(Config):
     ROOT = "../drive/MyDrive/runs_resnet_1stride"
     STEPS = 500000
     BATCH = 64
-    START_LR = 1e-3
+    START_LR = 8e-4
     STOP_LR = 1e-4
     DECAY_OVER = 400000
+    LOAD_FROM_CHECKPOINT = True
+    CHECKPOINT = "../drive/MyDrive/runs_resnet_1/state6609.713998248192556.pth"
 
 def main():
 
@@ -33,6 +35,9 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model = DDSP(**config["model"]).to(device)
+
+    if config.LOAD_FROM_CHECKPOINT:
+        model.load_state_dict(config.CHECKPOINT)
 
     dataset = Dataset(config["preprocess"]["out_dir"])
 
