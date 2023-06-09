@@ -281,7 +281,7 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         #pad_in = calc_same_pad(n_mels, 7, 2)
         #pad_out = calc_same_pad(time_steps, 7, 2)
-        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=1, padding="same", bias=False)
+        self.conv1 = nn.Conv2d(n_mels, self.inplanes, kernel_size=7, stride=1, padding="same", bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
@@ -396,9 +396,9 @@ class ResNetAutoencoder(nn.Module):
         self.time_steps = time_steps
         ch, num_layers = size_dict[size]
         self.resnet = ResNet(Bottleneck, num_layers, time_steps=time_steps, n_mels=n_mels)
-        self.out = nn.ModuleList([nn.Linear(1024*n_mels, pitch),
-                                  nn.Linear(1024*n_mels, amplitude*pitch),
-                                  nn.Linear(1024*n_mels, noise_mag)
+        self.out = nn.ModuleList([nn.Linear(1024, pitch),
+                                  nn.Linear(1024, amplitude*pitch),
+                                  nn.Linear(1024, noise_mag)
                                   ])
         
     def forward(self, audio):
@@ -407,10 +407,10 @@ class ResNetAutoencoder(nn.Module):
         mels = self.spectral_fn(audio)
         mels = safe_log(mels)
         mels = mels[:, :, :self.time_steps]
-        mels = mels[:, None, :, :] # adding a channel dim
-        mels = rearrange(mels, "b c m t -> b c t m")
+        mels = mels[:, :, :, None] # adding a channel dim
+        #mels = rearrange(mels, "b m t c -> b c t m")
         x = self.resnet(mels)
-        x = rearrange(x, "b c t m -> b t (c m)")
+        x = rearrange(x, "b m t c -> b t (c m)")
         
         return tuple([decoder(x) for decoder in self.out])
         
