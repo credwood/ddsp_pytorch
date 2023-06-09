@@ -208,7 +208,7 @@ class Bottleneck(nn.Module):
         groups: int = 1,
         base_width: int = 64,
         dilation: int = 1,
-        norm_layer = nn.LayerNorm,
+        norm_layer = nn.InstanceNorm2d,
     ) -> None:
         super().__init__()
         if norm_layer is None:
@@ -257,7 +257,7 @@ class ResNet(nn.Module):
         groups = 1,
         width_per_group = 64,
         replace_stride_with_dilation = None,
-        norm_layer = nn.LayerNorm,
+        norm_layer = nn.InstanceNorm2d,
         time_steps=250,
         n_mels=128
     ) -> None:
@@ -281,7 +281,7 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         #pad_in = calc_same_pad(n_mels, 7, 2)
         #pad_out = calc_same_pad(time_steps, 7, 2)
-        self.conv1 = nn.Conv2d(n_mels, self.inplanes, kernel_size=7, stride=1, padding="same", bias=False)
+        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=1, padding="same", bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
