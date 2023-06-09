@@ -81,7 +81,7 @@ class DDSP(nn.Module):
             amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             multi=True
             pitch = self.midi_norm(pitch)
-            pitch_dist = nn.functional.softmax(pitch)
+            pitch_dist = nn.functional.softmax(pitch, dim=-1)
             pitch = normalize_to_midi(pitch)
             if top_k_pitches:
                 _, top_k = torch.topk(pitch_dist, k=3, sorted=False)
