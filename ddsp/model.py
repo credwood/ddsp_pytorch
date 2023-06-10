@@ -72,7 +72,6 @@ class DDSP(nn.Module):
         else:
             self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
-        self.midi_norm = nn.LayerNorm(n_midi)
     
         
     def forward(self, s, pitch=None, loudness=None, top_k_pitches=True):
@@ -80,7 +79,6 @@ class DDSP(nn.Module):
             pitch, amp_param, noise_param = self.autoencoder(s)
             amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             multi=True
-            pitch = self.midi_norm(pitch)
             pitch_dist = nn.functional.softmax(pitch, dim=-1)
             pitch = normalize_to_midi(pitch)
             if top_k_pitches:
