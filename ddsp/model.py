@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .core import scale_function, remove_above_nyquist, upsample, normalize_to_midi
+from .core import scale_function, remove_above_nyquist, upsample, normalize_from_midi
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from .core import resample
 from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig, ResNetAutoencoder, ResNetEncoderConfig
@@ -80,7 +80,7 @@ class DDSP(nn.Module):
             amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             multi=True
             pitch_dist = nn.functional.softmax(pitch, dim=-1)
-            pitch = normalize_to_midi(pitch)
+            pitch = normalize_from_midi(pitch)
             if top_k_pitches:
                 _, top_k = torch.topk(pitch_dist, k=3, sorted=False)
                 pitch = pitch[:, :, top_k[-1][-1]]
