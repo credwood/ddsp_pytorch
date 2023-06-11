@@ -81,6 +81,7 @@ class DDSP(nn.Module):
             #multi=True
             pitch_dist = nn.functional.softmax(pitch, dim=-1)
             pitch = normalize_from_midi(pitch)
+            # their method takes the expected value as f0
             pitch = (pitch*pitch_dist).sum(dim=-1).unsqueeze(-1)
             #if top_k_pitches:
                 #_, top_k = torch.topk(pitch_dist, k=3, sorted=False)

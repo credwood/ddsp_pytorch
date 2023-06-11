@@ -88,7 +88,7 @@ def main():
             #p = 
 
             y = model(s, p, l).squeeze(-1)
-
+            y = y[:, :s.shape[-1]]
             ori_stft = multiscale_fft(
                 s,
                 config["train"]["scales"],
