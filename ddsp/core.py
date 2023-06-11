@@ -128,7 +128,7 @@ def remove_above_nyquist(amplitudes, pitch, sampling_rate, multi=False):
     if multi:
        return remove_above_nyquist_multi(amplitudes, pitch, sampling_rate)
     n_harm = amplitudes.shape[-1]
-    pitches = pitch * torch.arange(1, n_harm + 1).to(pitch)
+    pitches = pitch.repeat(1,1, n_harm).to(pitch)
     aa = (pitches < sampling_rate / 2).float() + 1e-4
     return amplitudes * aa
 

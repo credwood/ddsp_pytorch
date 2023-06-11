@@ -24,7 +24,7 @@ class EncoderConfig(Config):
 
 class ResNetEncoderConfig(Config):
     time_steps = 250
-    n_mels = 128
+    n_mels = 229
     sample_rate = 16000
     pitch = 128
     amplitude = 100+1
@@ -285,10 +285,10 @@ class ResNet(nn.Module):
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
-        #self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
+        self.layer1 = self._make_layer(block, 128, layers[0])
+        self.layer2 = self._make_layer(block, 256, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
+        self.layer3 = self._make_layer(block, 512, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
+        self.layer4 = self._make_layer(block, 1024, 3, stride=2, dilate=replace_stride_with_dilation[2])
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -358,7 +358,7 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        #x = self.layer4(x)
+        x = self.layer4(x)
 
         return x
 
@@ -371,19 +371,20 @@ class ResNetAutoencoder(nn.Module):
     "ResNet Autoencoder that maps from audio to synthesizer parameters"
     def __init__(self,
                  time_steps=250,
-                 pitch = 128,
+                 frequencies=128,
                  amplitude=100+1,
                  noise_mag=60,
                  size='small',
-                 n_mels=128,
+                 n_mels=229,
+                 factor_downsample=4,
                  **kwargs
                  ):
         super().__init__()
         self.spectral_fn = T.MelSpectrogram(
             sample_rate=16000,
-            n_fft=1024,
+            n_fft=2048,
             n_mels=n_mels,
-            hop_length=int(1024 * (1.0 - 0.75)),
+            hop_length=int(2048 * (1.0 - 0.75)),
             f_min=20.0,
             f_max=8000.0, 
         )
@@ -396,9 +397,9 @@ class ResNetAutoencoder(nn.Module):
         self.time_steps = time_steps
         ch, num_layers = size_dict[size]
         self.resnet = ResNet(Bottleneck, num_layers, time_steps=time_steps, n_mels=n_mels)
-        self.out = nn.ModuleList([nn.Linear(1024, pitch),
-                                  nn.Linear(1024, amplitude*pitch),
-                                  nn.Linear(1024, noise_mag)
+        self.out = nn.ModuleList([nn.Linear(1024*factor_downsample, frequencies),
+                                  nn.Linear(1024*factor_downsample, amplitude),
+                                  nn.Linear(1024*factor_downsample, noise_mag)
                                   ])
         
     def forward(self, audio):

@@ -77,18 +77,19 @@ class DDSP(nn.Module):
     def forward(self, s, pitch=None, loudness=None, top_k_pitches=True):
         if isinstance(self.autoencoder, ResNetAutoencoder):
             pitch, amp_param, noise_param = self.autoencoder(s)
-            amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
-            multi=True
+            #amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
+            #multi=True
             pitch_dist = nn.functional.softmax(pitch, dim=-1)
             pitch = normalize_from_midi(pitch)
-            if top_k_pitches:
-                _, top_k = torch.topk(pitch_dist, k=3, sorted=False)
-                pitch = pitch[:, :, top_k[-1][-1]]
-                amp_param = amp_param[:, :, top_k[-1][-1]]
+            pitch = (pitch*pitch_dist).sum(dim=-1).unsqueeze(-1)
+            #if top_k_pitches:
+                #_, top_k = torch.topk(pitch_dist, k=3, sorted=False)
+               # pitch = pitch[:, :, top_k[-1][-1]]
+                #amp_param = amp_param[:, :, top_k[-1][-1]]
 
         else:
             amp_param, noise_param = self.autoencoder(pitch, loudness, s)
-            multi=False
+        multi=False
 
         # harmonic part
         param = scale_function(amp_param)
@@ -188,4 +189,6 @@ class DDSP(nn.Module):
         return signal
         """
         pass
-       
+
+class DDSPInv(nn.Module):
+    pass
