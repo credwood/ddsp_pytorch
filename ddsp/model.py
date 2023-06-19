@@ -3,7 +3,8 @@ import torch.nn as nn
 from .core import scale_function, remove_above_nyquist, upsample, normalize_from_midi
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from .core import resample
-from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig, ResNetAutoencoder, ResNetEncoderConfig
+from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
+from .resnet import ResNetAutoencoder, ResNetEncoderConfig
 from .decoders import RnnFcDecoder, DecoderConfig
 from einops import rearrange
 
