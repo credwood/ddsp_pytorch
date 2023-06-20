@@ -3,6 +3,7 @@
 Resnet adapted from: https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
 import torch
+from typing import Union, List
 import torch.nn as nn
 import torch.nn.functional as F
 from .core import safe_log
@@ -21,6 +22,21 @@ class ResNetEncoderConfig(Config):
     size = 'small'
     
 # ------------------ ResNet ----------------------------------------------------
+
+class LayerNorm(nn.LayerNorm):
+    """
+    Moves Channel dim to the back to apply LayerNorm
+    from: https://github.com/facebookresearch/encodec/blob/main/encodec/modules/norm.py
+    """
+    def __init__(self, norm_shape: Union[int, List[int], torch.Size], **kwargs):
+        super().__init__(norm_shape, **kwargs)
+    
+    def forward(self, x):
+        x = torch.einsum("bm...t->bt...m", x)
+        x = super().forward(x)
+        x = torch.einsum("bt...m->bm...t", x)
+        return x
+
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
@@ -112,7 +128,7 @@ class Bottleneck(nn.Module):
         groups: int = 1,
         base_width: int = 64,
         dilation: int = 1,
-        norm_layer = nn.InstanceNorm2d,
+        norm_layer = LayerNorm,
     ) -> None:
         super().__init__()
         if norm_layer is None:
@@ -161,7 +177,7 @@ class ResNet(nn.Module):
         groups = 1,
         width_per_group = 64,
         replace_stride_with_dilation = None,
-        norm_layer = nn.InstanceNorm2d,
+        norm_layer = LayerNorm,
         time_steps=250,
         n_mels=128
     ) -> None:
@@ -197,7 +213,7 @@ class ResNet(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
-            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm, LayerNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
@@ -312,10 +328,10 @@ class ResNetAutoencoder(nn.Module):
         mels = self.spectral_fn(audio)
         mels = safe_log(mels)
         mels = mels[:, :, :self.time_steps]
-        mels = mels[:, :, :, None] # adding a channel dim
-        #mels = rearrange(mels, "b m t c -> b c t m")
+        mels = mels[:, :, :, None]
+        mels = rearrange(mels, "b m t c -> b m c t")
         x = self.resnet(mels)
-        x = rearrange(x, "b m t c -> b t (c m)")
+        x = rearrange(x, "b m c t -> b t (c m)")
         
         return tuple([decoder(x) for decoder in self.out])
         
