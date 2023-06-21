@@ -80,7 +80,7 @@ class DDSP(nn.Module):
             pitch, amp_param, noise_param = self.autoencoder(s)
             #amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             #multi=True
-            pitch_dist = nn.functional.softmax(pitch, dim=-1)
+            pitch_dist = nn.Sigmoid(pitch, dim=-1)
             pitch = normalize_from_midi(pitch)
             # their method takes the expected value as f0
             pitch = (pitch*pitch_dist).sum(dim=-1).unsqueeze(-1)
