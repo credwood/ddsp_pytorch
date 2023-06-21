@@ -85,6 +85,9 @@ class DDSP(nn.Module):
             pitch_mask = torch.where(pitch_dist >= 0.5, 1, 0)
             pitch = normalize_from_midi(pitch)
             # their method takes the expected value as f0
+            # have tried multiple unsupervised methods
+            # will implement the self-supervised method with synthetic
+            # data that the magenta team uses
             pitch = (pitch*pitch_mask).sum(dim=-1).unsqueeze(-1)
             #if top_k_pitches:
                 #_, top_k = torch.topk(pitch_dist, k=3, sorted=False)
