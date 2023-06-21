@@ -73,6 +73,7 @@ class DDSP(nn.Module):
         else:
             self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
+        self.sigmoid = nn.Sigmoid()
     
         
     def forward(self, s, pitch=None, loudness=None, top_k_pitches=True):
@@ -80,10 +81,11 @@ class DDSP(nn.Module):
             pitch, amp_param, noise_param = self.autoencoder(s)
             #amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             #multi=True
-            pitch_dist = nn.Sigmoid(pitch, dim=-1)
+            pitch_dist = self.sigmoid(pitch)
+            pitch_mask = torch.where(pitch_dist >= 0.5, 1, 0)
             pitch = normalize_from_midi(pitch)
             # their method takes the expected value as f0
-            pitch = (pitch*pitch_dist).sum(dim=-1).unsqueeze(-1)
+            pitch = (pitch*pitch_mask).sum(dim=-1).unsqueeze(-1)
             #if top_k_pitches:
                 #_, top_k = torch.topk(pitch_dist, k=3, sorted=False)
                # pitch = pitch[:, :, top_k[-1][-1]]
