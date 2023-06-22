@@ -82,6 +82,8 @@ class DDSP(nn.Module):
             #amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             #multi=True
             pitch_dist = self.sigmoid(pitch)
+            mx = torch.argmax(pitch_dist, dim=-1)
+            print(mx, pitch_dist.shape)
             pitch_mask = torch.where(pitch_dist >= 0.5, 1, 0)
             pitch = normalize_from_midi(pitch)
             # their method takes the expected value as f0
