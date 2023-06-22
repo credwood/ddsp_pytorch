@@ -302,9 +302,9 @@ class ResNetAutoencoder(nn.Module):
         super().__init__()
         self.spectral_fn = T.MelSpectrogram(
             sample_rate=16000,
-            n_fft=2048,
+            n_fft=1024,
             n_mels=n_mels,
-            hop_length=int(2048 * (1.0 - 0.75)),
+            hop_length=int(1024 * (1.0 - 0.75)),
             f_min=20.0,
             f_max=8000.0, 
         )
