@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .core import scale_function, remove_above_nyquist, upsample, normalize_from_midi
-from .core import harmonic_synth, amp_to_impulse_response, fft_convolve
+from .core import harmonic_synth, amp_to_impulse_response, fft_convolve, pitch_ss_loss
 from .core import resample
 from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
 from .resnet import ResNetAutoencoder, ResNetEncoderConfig
@@ -76,25 +76,25 @@ class DDSP(nn.Module):
         self.sigmoid = nn.Sigmoid()
     
         
-    def forward(self, s, pitch=None, loudness=None, top_k_pitches=True):
+    def forward(self, s, pitch=None, loudness=None):
+        true_pitch = pitch
         if isinstance(self.autoencoder, ResNetAutoencoder):
             pitch, amp_param, noise_param = self.autoencoder(s)
             #amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             #multi=True
             pitch_dist = self.sigmoid(pitch)
-            mx = torch.argmax(pitch_dist, dim=-1)
-            print(mx, pitch_dist.shape)
-            pitch_mask = torch.where(pitch_dist >= 0.5, 1, 0)
+            vals, inds = torch.topk(pitch_dist, k=1)
             pitch = normalize_from_midi(pitch)
             # their method takes the expected value as f0
             # have tried multiple unsupervised methods
             # will implement the self-supervised method with synthetic
             # data that the magenta team uses
-            pitch = (pitch*pitch_mask).sum(dim=-1).unsqueeze(-1)
-            #if top_k_pitches:
-                #_, top_k = torch.topk(pitch_dist, k=3, sorted=False)
-               # pitch = pitch[:, :, top_k[-1][-1]]
-                #amp_param = amp_param[:, :, top_k[-1][-1]]
+            if true_pitch is not None:
+                pitch_loss = pitch_ss_loss(vals, true_pitch)
+            else:
+                pitch_loss = 0
+            pitch = pitch.gather(-1, inds).sum(dim=-1).unsqueeze(-1)
+
 
         else:
             amp_param, noise_param = self.autoencoder(pitch, loudness, s)
@@ -137,67 +137,4 @@ class DDSP(nn.Module):
         #reverb part
         signal = self.reverb(signal)
 
-        return signal
-
-    def realtime_forward(self, pitch, loudness):
-        """
-        TODO: update Decoder class to allow for caching
-         hidden = torch.cat([
-            self.in_mlps[0](pitch),
-            self.in_mlps[1](loudness),
-        ], -1)
-
-        gru_out, cache = self.gru(hidden, self.cache_gru)
-        self.cache_gru.copy_(cache)
-
-        hidden = torch.cat([gru_out, pitch, loudness], -1)
-        hidden = self.out_mlp(hidden)
-
-        # harmonic part
-        param = scale_function(self.proj_matrices[0](hidden))
-
-        total_amp = param[..., :1]
-        amplitudes = param[..., 1:]
-
-        amplitudes = remove_above_nyquist(
-            amplitudes,
-            pitch,
-            self.sampling_rate,
-        )
-        amplitudes /= amplitudes.sum(-1, keepdim=True)
-        amplitudes *= total_amp
-
-        amplitudes = upsample(amplitudes, self.block_size)
-        pitch = upsample(pitch, self.block_size)
-
-        n_harmonic = amplitudes.shape[-1]
-        omega = torch.cumsum(2 * math.pi * pitch / self.sampling_rate, 1)
-
-        omega = omega + self.phase
-        self.phase.copy_(omega[0, -1, 0] % (2 * math.pi))
-
-        omegas = omega * torch.arange(1, n_harmonic + 1).to(omega)
-
-        harmonic = (torch.sin(omegas) * amplitudes).sum(-1, keepdim=True)
-
-        # noise part
-        param = scale_function(self.proj_matrices[1](hidden) - 5)
-
-        impulse = amp_to_impulse_response(param, self.block_size)
-        noise = torch.rand(
-            impulse.shape[0],
-            impulse.shape[1],
-            self.block_size,
-        ).to(impulse) * 2 - 1
-
-        noise = fft_convolve(noise, impulse).contiguous()
-        noise = noise.reshape(noise.shape[0], -1, 1)
-
-        signal = harmonic + noise
-
-        return signal
-        """
-        pass
-
-class DDSPInv(nn.Module):
-    pass
+        return signal, pitch_loss

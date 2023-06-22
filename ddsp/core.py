@@ -198,6 +198,14 @@ def mlp(in_size, hidden_size, n_layers):
         net.append(nn.LeakyReLU())
     return nn.Sequential(*net)
 
+def pitch_ss_loss(predicted, true_pitch):
+   top_k = predicted.shape[-1]
+   true_pitch = true_pitch.repeat(1, 1, top_k)
+   vals, _ = torch.abs(predicted-true_pitch).min(dim=-1)
+   vals = vals.sum()
+   return vals
+
+
 
 def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
