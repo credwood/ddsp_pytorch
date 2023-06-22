@@ -102,7 +102,7 @@ def main():
                 config["train"]["overlap"],
             )
 
-            loss = 0.1*pitch_loss
+            loss = 0.0001*pitch_loss
             for s_x, s_y in zip(ori_stft, rec_stft):
                 lin_loss = (s_x - s_y).abs().mean()
                 log_loss = (safe_log(s_x) - safe_log(s_y)).abs().mean()

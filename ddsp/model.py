@@ -83,7 +83,7 @@ class DDSP(nn.Module):
             #amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
             #multi=True
             pitch_dist = self.sigmoid(pitch)
-            vals, inds = torch.topk(pitch_dist, k=1)
+            vals, inds = torch.topk(pitch_dist, k=3)
             pitch = normalize_from_midi(pitch)
             # their method takes the expected value as f0
             # have tried multiple unsupervised methods
@@ -93,7 +93,7 @@ class DDSP(nn.Module):
                 pitch_loss = pitch_ss_loss(vals, true_pitch)
             else:
                 pitch_loss = 0
-            pitch = pitch.gather(-1, inds).sum(dim=-1).unsqueeze(-1)
+            pitch = pitch.gather(-1, inds).mean(dim=-1).unsqueeze(-1)
 
 
         else:
