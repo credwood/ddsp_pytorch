@@ -70,11 +70,11 @@ class DDSP(nn.Module):
 
         if autoencoder == ResNetAutoencoder:
             self.autoencoder = ResNetAutoencoder(**dict(ResNetEncoderConfig))
+            self.sigmoid = nn.Sigmoid()
         else:
             self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
-        self.sigmoid = nn.Sigmoid()
-    
+        
         
     def forward(self, s, pitch=None, loudness=None, top_k=3):
         true_pitch = pitch
