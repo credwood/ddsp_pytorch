@@ -292,9 +292,7 @@ class ResNetAutoencoder(nn.Module):
     def __init__(self,
                  time_steps=250,
                  frequencies=128,
-                 amplitude=100+1,
-                 noise_mag=60,
-                 size='large',
+                 size='small',
                  n_mels=229,
                  factor_downsample=4,
                  **kwargs
@@ -317,10 +315,7 @@ class ResNetAutoencoder(nn.Module):
         self.time_steps = time_steps
         ch, num_layers = size_dict[size]
         self.resnet = ResNet(Bottleneck, num_layers, time_steps=time_steps, n_mels=n_mels)
-        self.out = nn.ModuleList([nn.Linear(1024*factor_downsample, frequencies),
-                                  nn.Linear(1024*factor_downsample, amplitude*frequencies),
-                                  nn.Linear(1024*factor_downsample, noise_mag)
-                                  ])
+        self.out = nn.Linear(1024*factor_downsample, frequencies)
         
     def forward(self, audio):
         assert len(audio.shape) == 2, "audio must have shape batch_size, samples"
@@ -333,5 +328,5 @@ class ResNetAutoencoder(nn.Module):
         x = self.resnet(mels)
         x = rearrange(x, "b m c t -> b t (c m)")
         
-        return tuple([decoder(x) for decoder in self.out])
+        return self.out(x)
         

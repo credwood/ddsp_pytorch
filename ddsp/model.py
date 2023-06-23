@@ -58,7 +58,8 @@ class Autoencoder(nn.Module):
 
 class DDSP(nn.Module):
     def __init__(self, hidden_size=512, sampling_rate=16000,
-                 block_size=256, n_midi=128, autoencoder=ResNetAutoencoder
+                 block_size=256, n_midi=128, pitch_encoder=ResNetAutoencoder,
+                 autoencoder=Autoencoder
                  ):
         super().__init__()
         self.register_buffer("sampling_rate", torch.tensor(sampling_rate))
@@ -68,38 +69,34 @@ class DDSP(nn.Module):
         self.register_buffer("cache_gru", torch.zeros(1, 1, hidden_size))
         self.register_buffer("phase", torch.zeros(1))
 
-        if autoencoder == ResNetAutoencoder:
-            self.autoencoder = ResNetAutoencoder(**dict(ResNetEncoderConfig))
+        if pitch_encoder == ResNetAutoencoder:
+            self.pitch_encoder = ResNetAutoencoder(**dict(ResNetEncoderConfig))
             self.sigmoid = nn.Sigmoid()
-        else:
-            self.autoencoder = autoencoder()
+        
+        self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
         
         
-    def forward(self, s, pitch=None, loudness=None, top_k=3):
+    def forward(self, s, pitch=None, loudness=None):
         true_pitch = pitch
-        if isinstance(self.autoencoder, ResNetAutoencoder):
-            pitch, amp_param, noise_param = self.autoencoder(s)
-            amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
-            pitch_sig = self.sigmoid(pitch)
-            vals, inds = torch.topk(pitch_sig, k=top_k)
+        if isinstance(self.pitch_encoder, ResNetAutoencoder):
+            pitch = self.pitch_encoder(s)
+            pitch_dist= nn.functional.softmax(pitch)
+            ind_max = torch.argmax(pitch_dist, dim=-1).unsqueeze(-1)
             pitch = normalize_from_midi(pitch)
+            pitch = pitch.gather(-1, ind_max)
             # their method takes the expected value as f0
             # have tried multiple unsupervised methods
-            # will implement the self-supervised method with synthetic
-            # data that the magenta team uses
+            # might implement the self-supervised method with synthetic
+            # data that the magenta team uses at some point
             if true_pitch is not None:
-                pitch_loss = pitch_ss_loss(vals, true_pitch)
+                pitch_loss = pitch_ss_loss(pitch, true_pitch)
             else:
                 pitch_loss = 0
             #pitch = pitch.gather(-1, inds)
             #amp_param = amp_param.gather(2, inds)
-            multi=True
-
-
-        else:
-            amp_param, noise_param = self.autoencoder(pitch, loudness, s)
-            multi=False
+        multi=False
+        amp_param, noise_param = self.autoencoder(pitch, loudness, s)
 
         # harmonic part
         param = scale_function(amp_param)
