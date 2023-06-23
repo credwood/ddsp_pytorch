@@ -294,7 +294,7 @@ class ResNetAutoencoder(nn.Module):
                  frequencies=128,
                  amplitude=100+1,
                  noise_mag=60,
-                 size='small',
+                 size='large',
                  n_mels=229,
                  factor_downsample=4,
                  **kwargs
@@ -318,7 +318,7 @@ class ResNetAutoencoder(nn.Module):
         ch, num_layers = size_dict[size]
         self.resnet = ResNet(Bottleneck, num_layers, time_steps=time_steps, n_mels=n_mels)
         self.out = nn.ModuleList([nn.Linear(1024*factor_downsample, frequencies),
-                                  nn.Linear(1024*factor_downsample, amplitude),
+                                  nn.Linear(1024*factor_downsample, amplitude*frequencies),
                                   nn.Linear(1024*factor_downsample, noise_mag)
                                   ])
         

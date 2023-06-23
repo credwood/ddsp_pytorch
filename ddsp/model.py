@@ -76,15 +76,13 @@ class DDSP(nn.Module):
         self.sigmoid = nn.Sigmoid()
     
         
-    def forward(self, s, pitch=None, loudness=None):
+    def forward(self, s, pitch=None, loudness=None, top_k=3):
         true_pitch = pitch
         if isinstance(self.autoencoder, ResNetAutoencoder):
             pitch, amp_param, noise_param = self.autoencoder(s)
-            #amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
-            #multi=True
-            pitch_dist = self.sigmoid(pitch)
-            pitch_soft = nn.functional.softmax(pitch, dim=-1)
-            vals, inds = torch.topk(pitch_dist, k=3)
+            amp_param = rearrange(amp_param, "b t (a p) -> b t p a", p=pitch.shape[-1])
+            pitch_sig = self.sigmoid(pitch)
+            vals, inds = torch.topk(pitch_sig, k=top_k)
             pitch = normalize_from_midi(pitch)
             # their method takes the expected value as f0
             # have tried multiple unsupervised methods
@@ -94,12 +92,14 @@ class DDSP(nn.Module):
                 pitch_loss = pitch_ss_loss(vals, true_pitch)
             else:
                 pitch_loss = 0
-            pitch = (pitch_soft.gather(-1, inds) * pitch.gather(-1, inds)).sum(dim=-1).unsqueeze(-1)
+            #pitch = pitch.gather(-1, inds)
+            #amp_param = amp_param.gather(2, inds)
+            multi=True
 
 
         else:
             amp_param, noise_param = self.autoencoder(pitch, loudness, s)
-        multi=False
+            multi=False
 
         # harmonic part
         param = scale_function(amp_param)

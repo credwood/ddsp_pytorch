@@ -140,7 +140,7 @@ def remove_above_nyquist_multi(amplitudes, pitch, sampling_rate):
     """
     aa = (pitch < sampling_rate / 2).float() + 1e-4
     aa = aa.unsqueeze(-1)
-    aa = aa.repeat(1, 1, 1, amplitudes.shape[-1])
+    aa = aa.repeat(1, 1, 1, amplitudes.shape[-1]).to(pitch)
     return aa * amplitudes
 
 
@@ -198,14 +198,13 @@ def mlp(in_size, hidden_size, n_layers):
         net.append(nn.LeakyReLU())
     return nn.Sequential(*net)
 
+
 def pitch_ss_loss(predicted, true_pitch):
    top_k = predicted.shape[-1]
    true_pitch = true_pitch.repeat(1, 1, top_k)
    vals, _ = torch.abs(predicted-true_pitch).min(dim=-1)
-   vals = vals.sum()
+   vals = vals.mean()
    return vals
-
-
 
 def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
@@ -231,7 +230,9 @@ def harmonic_synth_multi(pitch, amplitudes, sampling_rate):
     pitch: tensor, shape [b upsampled_signal p]
     amplitudes: tensor, shape [b upsampled_signal p a]
     """
-    omega = torch.cumsum(2 * math.pi * pitch / sampling_rate, 1)
+    omega = pitch * (2.0 * np.pi)
+    omega = omega/float(sampling_rate)
+    omega = torch.cumsum(omega, 1)
     omega = torch.sin(omega)
     signal = torch.einsum("bsp,bspa->bsp", omega, amplitudes)
     signal = torch.einsum("bsp->bs", signal)
