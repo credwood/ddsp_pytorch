@@ -209,11 +209,14 @@ def pitch_ss_loss(predicted, true_pitch):
 def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
 
-def normalize_from_midi(t):
-   midi_func = lambda n: 440*2**((n-69)/12)
-   midi = torch.tensor([midi_func(n) for n in range(t.shape[-1])])
-   midi = midi.repeat(t.shape[0], t.shape[1], 1)
-   return midi.to(t)
+def unit_to_midi(unit,midi_min= 0.0,midi_max=128.0):
+  return midi_min + (midi_max - midi_min) * unit
+
+def midi_to_hz(t):
+   midi = unit_to_midi(t)
+   hz =  440.0*(2.0**(midi-69.0)/12.0)
+   hz = torch.where(t==0.0, 0.1, hz)
+   return hz
    
 
 def harmonic_synth(pitch, amplitudes, sampling_rate, multi=False):

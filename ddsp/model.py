@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .core import scale_function, remove_above_nyquist, upsample, normalize_from_midi
+from .core import scale_function, remove_above_nyquist, upsample, midi_to_hz
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve, pitch_ss_loss
 from .core import resample
 from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
@@ -78,21 +78,18 @@ class DDSP(nn.Module):
         
         
     def forward(self, s, pitch=None, loudness=None):
-        true_pitch = pitch
         if isinstance(self.pitch_encoder, ResNetAutoencoder):
+            true_pitch = pitch
             pitch = self.pitch_encoder(s)
             pitch_dist= nn.functional.softmax(pitch)
-            ind_max = torch.argmax(pitch_dist, dim=-1).unsqueeze(-1)
-            pitch = normalize_from_midi(pitch)
-            pitch = pitch.gather(-1, ind_max)
-            # their method takes the expected value as f0
-            # have tried multiple unsupervised methods
-            # might implement the self-supervised method with synthetic
-            # data that the magenta team uses at some point
-            if true_pitch is not None:
-                pitch_loss = pitch_ss_loss(pitch, true_pitch)
-            else:
-                pitch_loss = 0
+            pitch -= pitch.min(-1, keepdim=True)[0]
+            pitch /= pitch.max(-1, keepdim=True)[0]
+            pitch = midi_to_hz(pitch)
+            # magenta paper method takes the expected value as f0
+            pitch = (pitch_dist*pitch).sum(dim=-1)
+            pitch_loss = pitch_ss_loss(pitch, true_pitch)
+        else:
+            pitch_loss = 0
             #pitch = pitch.gather(-1, inds)
             #amp_param = amp_param.gather(2, inds)
         multi=False

@@ -88,8 +88,8 @@ def main():
             #p = 
 
             y, pitch_loss = model(s, p, l)
+            print(pitch_loss.item())
             y = y.squeeze(-1)
-            print(pitch_loss)
             y = y[:, :s.shape[-1]]
             ori_stft = multiscale_fft(
                 s,
@@ -102,13 +102,15 @@ def main():
                 config["train"]["overlap"],
             )
 
-            loss = 0.1*pitch_loss
+            loss = 0.0
             for s_x, s_y in zip(ori_stft, rec_stft):
                 lin_loss = (s_x - s_y).abs().mean()
                 log_loss = (safe_log(s_x) - safe_log(s_y)).abs().mean()
                 loss = loss + lin_loss + log_loss
 
+            pitch_loss = 0.1*pitch_loss
             opt.zero_grad()
+            pitch_loss.backward()
             loss.backward()
             opt.step()
             
