@@ -6,6 +6,8 @@ import librosa as li
 import crepe
 import math
 
+from einops import rearrange
+
 def ensure_4d_resnet(x):
   """Add extra dimensions to make sure tensor has height and width."""
   if len(x.shape) == 2:
@@ -209,13 +211,13 @@ def pitch_ss_loss(predicted, true_pitch):
 def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
 
-def unit_to_midi(unit,midi_min= 0.0,midi_max=127.0):
+def unit_to_midi(unit, midi_min=0.0, midi_max=127.0):
   return midi_min + (midi_max - midi_min) * unit
 
 def midi_to_hz(t):
-   midi = unit_to_midi(t)
-   hz =  440.0*(2.0**(midi-69.0)/12.0)
-   hz = torch.where(midi==0.0, 0.1, hz)
+   midi = torch.arange(0, t.shape[-1]).to(t)
+   hz =  440.0*(2.0**((midi-69.0)/12.0))
+   hz = hz.repeat(t.shape[0], t.shape[1], 1)
    return hz
    
 
@@ -236,9 +238,11 @@ def harmonic_synth_multi(pitch, amplitudes, sampling_rate):
     omega = pitch * (2.0 * np.pi)
     omega = omega/float(sampling_rate)
     omega = torch.cumsum(omega, 1)
+    omega = omega.repeat(1, 1, amplitudes.shape[-1])
+    omega = rearrange(omega, "b s (p a) -> b s p a", a=amplitudes.shape[-1])
+    omega = omega * torch.arange(1, amplitudes.shape[-1] + 1).to(omega)
     omega = torch.sin(omega)
-    signal = torch.einsum("bsp,bspa->bsp", omega, amplitudes)
-    signal = torch.einsum("bsp->bs", signal)
+    signal = torch.einsum("bspa->bs", omega*amplitudes)
     return signal.unsqueeze(-1)
 
 

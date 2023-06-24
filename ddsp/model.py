@@ -81,8 +81,6 @@ class DDSP(nn.Module):
             pitch = self.pitch_encoder(s)
             #pitch = scale_function(pitch)
             pitch_dist= nn.functional.softmax(pitch, dim=-1)
-            pitch -= pitch.min(-1, keepdim=True)[0]
-            pitch /= pitch.max(-1, keepdim=True)[0]
             pitch = midi_to_hz(pitch)
             # magenta paper method takes the expected value as f0
             pitch = (pitch_dist*pitch).sum(dim=-1).unsqueeze(-1)
