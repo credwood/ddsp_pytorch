@@ -87,8 +87,7 @@ def main():
             #l = (l - mean_loudness) / std_loudness this seems to produce worse results than no standardization
             #p = 
 
-            y, pitch_loss = model(s, p, l)
-            print(pitch_loss.item())
+            y = model(s, p, l)
             y = y.squeeze(-1)
             y = y[:, :s.shape[-1]]
             ori_stft = multiscale_fft(
@@ -108,9 +107,7 @@ def main():
                 log_loss = (safe_log(s_x) - safe_log(s_y)).abs().mean()
                 loss = loss + lin_loss + log_loss
 
-            pitch_loss = 0.1*pitch_loss
             opt.zero_grad()
-            pitch_loss.backward()
             loss.backward()
             opt.step()
             

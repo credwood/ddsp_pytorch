@@ -87,9 +87,6 @@ class DDSP(nn.Module):
             pitch = midi_to_hz(pitch)
             # magenta paper method takes the expected value as f0
             pitch = (pitch_dist*pitch).sum(dim=-1).unsqueeze(-1)
-            pitch_loss = pitch_ss_loss(pitch, true_pitch)
-        else:
-            pitch_loss = 0
             #pitch = pitch.gather(-1, inds)
             #amp_param = amp_param.gather(2, inds)
         multi=False
@@ -132,4 +129,4 @@ class DDSP(nn.Module):
         #reverb part
         signal = self.reverb(signal)
 
-        return signal, pitch_loss
+        return signal
