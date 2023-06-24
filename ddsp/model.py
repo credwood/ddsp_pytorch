@@ -71,7 +71,6 @@ class DDSP(nn.Module):
 
         if pitch_encoder == ResNetAutoencoder:
             self.pitch_encoder = ResNetAutoencoder(**dict(ResNetEncoderConfig))
-            self.sigmoid = nn.Sigmoid()
         
         self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
@@ -81,6 +80,7 @@ class DDSP(nn.Module):
         if isinstance(self.pitch_encoder, ResNetAutoencoder):
             true_pitch = pitch
             pitch = self.pitch_encoder(s)
+            #pitch = scale_function(pitch)
             pitch_dist= nn.functional.softmax(pitch)
             pitch -= pitch.min(-1, keepdim=True)[0]
             pitch /= pitch.max(-1, keepdim=True)[0]
