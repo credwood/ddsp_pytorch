@@ -86,7 +86,7 @@ class DDSP(nn.Module):
             pitch /= pitch.max(-1, keepdim=True)[0]
             pitch = midi_to_hz(pitch)
             # magenta paper method takes the expected value as f0
-            pitch = (pitch_dist*pitch).sum(dim=-1)
+            pitch = (pitch_dist*pitch).sum(dim=-1).unsqueeze(-1)
             pitch_loss = pitch_ss_loss(pitch, true_pitch)
         else:
             pitch_loss = 0
