@@ -209,7 +209,7 @@ def pitch_ss_loss(predicted, true_pitch):
 def gru(n_input, hidden_size):
     return nn.GRU(n_input * hidden_size, hidden_size, batch_first=True)
 
-def unit_to_midi(unit,midi_min= 0.0,midi_max=128.0):
+def unit_to_midi(unit,midi_min= 0.0,midi_max=127.0):
   return midi_min + (midi_max - midi_min) * unit
 
 def midi_to_hz(t):
