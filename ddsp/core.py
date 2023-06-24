@@ -215,7 +215,7 @@ def unit_to_midi(unit,midi_min= 0.0,midi_max=127.0):
 def midi_to_hz(t):
    midi = unit_to_midi(t)
    hz =  440.0*(2.0**(midi-69.0)/12.0)
-   hz = torch.where(t==0.0, 0.1, hz)
+   hz = torch.where(midi==0.0, 0.1, hz)
    return hz
    
 
