@@ -1,3 +1,8 @@
+"""
+Many functions adapted from: https://github.com/magenta/ddsp/blob/761d61a5f13373c170f3a04d54bb28a1e2f06bab/ddsp/core.py
+and more generally: https://github.com/magenta/ddsp.git 
+"""
+
 import torch
 import torch.nn as nn
 import torch.fft as fft
