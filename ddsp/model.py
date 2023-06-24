@@ -78,17 +78,14 @@ class DDSP(nn.Module):
         
     def forward(self, s, pitch=None, loudness=None):
         if isinstance(self.pitch_encoder, ResNetAutoencoder):
-            true_pitch = pitch
             pitch = self.pitch_encoder(s)
             #pitch = scale_function(pitch)
-            pitch_dist= nn.functional.softmax(pitch)
+            pitch_dist= nn.functional.softmax(pitch, dim=-1)
             pitch -= pitch.min(-1, keepdim=True)[0]
             pitch /= pitch.max(-1, keepdim=True)[0]
             pitch = midi_to_hz(pitch)
             # magenta paper method takes the expected value as f0
             pitch = (pitch_dist*pitch).sum(dim=-1).unsqueeze(-1)
-            #pitch = pitch.gather(-1, inds)
-            #amp_param = amp_param.gather(2, inds)
         multi=False
         amp_param, noise_param = self.autoencoder(pitch, loudness, s)
 
