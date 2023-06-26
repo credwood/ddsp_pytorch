@@ -58,7 +58,7 @@ class Autoencoder(nn.Module):
 
 class DDSP(nn.Module):
     def __init__(self, hidden_size=512, sampling_rate=16000,
-                 block_size=256, n_midi=128, pitch_encoder=ResNetAutoencoder,
+                 block_size=256, n_midi=128, pitch_encoder=None,
                  autoencoder=Autoencoder
                  ):
         super().__init__()
@@ -71,19 +71,20 @@ class DDSP(nn.Module):
 
         if pitch_encoder == ResNetAutoencoder:
             self.pitch_encoder = ResNetAutoencoder(**dict(ResNetEncoderConfig))
-        
+            self.pitch_sigmoid = nn.Sigmoid()
+        else:
+            self.pitch_encoder = None
         self.autoencoder = autoencoder()
         self.reverb = Reverb(sampling_rate, sampling_rate)
         
         
+        
     def forward(self, s, pitch=None, loudness=None):
         if isinstance(self.pitch_encoder, ResNetAutoencoder):
-            pitch = self.pitch_encoder(s)
-            #pitch = scale_function(pitch)
-            pitch_dist= nn.functional.softmax(pitch, dim=-1)
-            pitch = midi_to_hz(pitch)
-            # magenta paper method takes the expected value as f0
-            pitch = (pitch_dist*pitch).sum(dim=-1).unsqueeze(-1)
+            raise NotImplementedError("training for ResNet not implemented")
+        else:
+            assert pitch is not None, "must pass f0 value"
+
         multi=False
         amp_param, noise_param = self.autoencoder(pitch, loudness, s)
 
