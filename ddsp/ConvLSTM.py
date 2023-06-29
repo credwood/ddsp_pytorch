@@ -13,14 +13,42 @@ import torchaudio.transforms as T
 from effortless_config import Config
 from einops import rearrange
 
+#|--------------Helper Classes--------------|
 
-"|--------------LSTM--------------|"
+class LayerNorm(nn.LayerNorm):
+    def __init__(self, dim):
+        super().__init__(dim)
+    
+    def forward(self, x):
+        x = torch.einsum("bm...t->bt...m", x)
+        x = super().forward(x)
+        x = torch.einsum("bt...m->bm...t", x)
+        return x
+
+class Swish(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        return x * self.sigmoid(x)
+
+class GLU(nn.Module):
+    def __init__(self, dim=1):
+        super().__init__()
+        self.dim = dim
+    
+    def forward(self, x):
+        out, gate = x.chunk(2, dim=self.dim)
+        return out * gate.sigmoid()
+
+
+#|--------------LSTM--------------|
 
 class LSTMConfig(Config):
     dim = 128
     num_layers = 3
     p_dropout = 0.0
-
 
 class LSTM(nn.Module):
     def __init__(self, dim=128, num_layers=3, p_dropout=0.0):
@@ -38,7 +66,28 @@ class LSTM(nn.Module):
         x = residual + self.dropout(x)
         return x
 
-"|--------------Convolution Block--------------|"
+#|--------------MLP--------------|
+class MLPConfig(Config):
+    dim_in = 128
+    dim_out = 128 * 4
+    dropout = 0.0
+
+class MLP(nn.Module):
+    def __init__(self, dim_in, dim_out, dropout):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.LayerNorm(dim_in),
+            nn.Linear(dim_in, dim_out),
+            Swish(),
+            nn.Dropout(p=dropout),
+            nn.Linear(dim_out, dim_in),
+            nn.Dropout(p=dropout)
+        )
+    
+    def forward(self, x):
+        return x + self.mlp(x)
+
+#|--------------Convolution Block--------------|
 
 def padd_conv(kernel_size):
     pad = kernel_size//2
@@ -50,33 +99,6 @@ class ConvConfig(Config):
     expansion_factor = 2
     kernel_size = 31
     dropout=0.
-
-class LayerNorm(nn.LayerNorm):
-    def __init__(self, dim):
-        super().__init__(dim)
-    
-    def forward(self, x):
-        x = torch.einsum("bm...t->bt...m", x)
-        x = super().forward(x)
-        x = torch.einsum("bt...m->bm...t", x)
-        return x
-        
-class Swish(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.sigmoid = nn.Sigmoid()
-    
-    def forward(self, x):
-        return x * self.sigmoid(x)
-
-class GLU(nn.Module):
-    def __init__(self, dim=1):
-        super().__init__()
-        self.dim = dim
-    
-    def forward(self, x):
-        out, gate = x.chunk(2, dim=self.dim)
-        return out * gate.sigmoid()
     
 class DepthWiseConv1D(nn.Module):
     def __init__(self, ch_in, ch_out, kernel_size, padding):
@@ -110,17 +132,19 @@ class ConvBlock(nn.Module):
         return x + self.block(x)
 
 
-"|--------------Model--------------|"
+#|--------------Model--------------|
 
 class ConvLSTM(nn.Module):
-    def __init__(self, conv_config=ConvConfig, lstm_config=LSTMConfig):
+    def __init__(self, conv_config=ConvConfig, lstm_config=LSTMConfig, mlp_config=MLPConfig):
         super().__init__()
         self.lstm_confg = dict(lstm_config)
         self.conv_config = dict(conv_config)
-        assert self.lstm_confg["dim"] == self.conv_config["dim_in"]
+        self.mlp_config = dict(mlp_config)
+        assert self.lstm_confg["dim"] == self.conv_config["dim_in"] == self.mlp_config["dim_in"]
         
         self.lstm = LSTM(**(self.lstm_confg))
         self.conv_block = ConvBlock(**(self.conv_config))
+        self.mlp = MLP(**(self.mlp_config))
 
         self.n_mels = self.lstm_confg["dim"]
         self.spectral_fn = T.MelSpectrogram(
@@ -142,5 +166,6 @@ class ConvLSTM(nn.Module):
         x = torch.einsum("btm->bmt", x)
         x = self.conv_block(x)
         x = torch.einsum("bmt->btm", x)
+        x = self.mlp(x)
 
         return self.out(x)
