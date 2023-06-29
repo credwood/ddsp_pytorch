@@ -5,6 +5,8 @@ Forked from [Artificial Creative Intelligence and Data Science](https://github.c
 
 Current additions to forked code include: encoders, decoders and a ResNet autoencoder. 
 
-Potential next steps include: creating a synthetic data pipeline for self-supervised feature extraction; adding more autoencoders for unsupervised/semi-supervised synthesis.
+Current development: *very* Experimental autoencoder for unsupervized pitch detection (ConvLSTM).
+
+Potential next steps: creating a synthetic data pipeline for self-supervised feature extraction; adding more autoencoders for unsupervised/semi-supervised synthesis.
 
 

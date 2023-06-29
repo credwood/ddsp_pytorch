@@ -1,5 +1,5 @@
 """
-Several modules are PyTorch implementations based on:
+Modules are PyTorch implementations based on:
 https://github.com/magenta/ddsp/blob/main/ddsp/training/encoders.py
 and
 https://github.com/magenta/ddsp/blob/main/ddsp/training/nn.py#L579
@@ -106,5 +106,3 @@ class MfccTimeDistributedRnnEncoder(ZEncoder):
         #assert z.shape[1] <= self.z_time_steps + 1, "timestep too large"
         z = self.out(z)
         return z[:, :self.z_time_steps, :]
-
-#class 
