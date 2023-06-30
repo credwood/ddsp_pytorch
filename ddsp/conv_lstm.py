@@ -69,18 +69,18 @@ class LSTM(nn.Module):
 #|--------------MLP--------------|
 class MLPConfig(Config):
     dim_in = 128
-    dim_out = 128 * 4
+    hidden = 128 * 4
     dropout = 0.0
 
 class MLP(nn.Module):
-    def __init__(self, dim_in, dim_out, dropout):
+    def __init__(self, dim_in, hidden, dropout):
         super().__init__()
         self.mlp = nn.Sequential(
             nn.LayerNorm(dim_in),
-            nn.Linear(dim_in, dim_out),
+            nn.Linear(dim_in, hidden),
             Swish(),
             nn.Dropout(p=dropout),
-            nn.Linear(dim_out, dim_in),
+            nn.Linear(hidden, dim_in),
             nn.Dropout(p=dropout)
         )
     
@@ -135,7 +135,7 @@ class ConvBlock(nn.Module):
 #|--------------Model--------------|
 
 class ConvLSTM(nn.Module):
-    def __init__(self, conv_config=ConvConfig, lstm_config=LSTMConfig, mlp_config=MLPConfig):
+    def __init__(self, out_dim =128, conv_config=ConvConfig, lstm_config=LSTMConfig, mlp_config=MLPConfig):
         super().__init__()
         self.lstm_confg = dict(lstm_config)
         self.conv_config = dict(conv_config)
@@ -156,7 +156,9 @@ class ConvLSTM(nn.Module):
             f_max=8000.0, 
         )
 
-        self.out = nn.Linear(128, 128)
+        dim = self.mlp_config["dim_in"]
+        self.layer_norm = nn.LayerNorm(dim)
+        self.out = nn.Linear(dim, out_dim)
     
     def forward(self, x):
         x = self.spectral_fn(x)
@@ -168,4 +170,4 @@ class ConvLSTM(nn.Module):
         x = torch.einsum("bmt->btm", x)
         x = self.mlp(x)
 
-        return self.out(x)
+        return self.out(self.layer_norm(x))
