@@ -135,7 +135,7 @@ class ConvBlock(nn.Module):
 #|--------------Model--------------|
 
 class ConvLSTM(nn.Module):
-    def __init__(self, out_dim =128, conv_config=ConvConfig, lstm_config=LSTMConfig, mlp_config=MLPConfig):
+    def __init__(self, n_bins = 128, conv_config=ConvConfig, lstm_config=LSTMConfig, mlp_config=MLPConfig):
         super().__init__()
         self.lstm_confg = dict(lstm_config)
         self.conv_config = dict(conv_config)
@@ -155,10 +155,17 @@ class ConvLSTM(nn.Module):
             f_min=20.0,
             f_max=8000.0, 
         )
+        self.inverse_spectral_fn = T.InverseMelScale(
+            n_stft=1024 // 2 + 1,
+            n_mels=self.n_mels,
+            sample_rate=16000,
+            f_min=20.0,
+            f_max=8000.0, 
+        )
 
         dim = self.mlp_config["dim_in"]
         self.layer_norm = nn.LayerNorm(dim)
-        self.out = nn.Linear(dim, out_dim)
+        self.out = nn.Linear(dim, n_bins)
     
     def forward(self, x):
         x = self.spectral_fn(x)
@@ -169,5 +176,6 @@ class ConvLSTM(nn.Module):
         x = self.conv_block(x)
         x = torch.einsum("bmt->btm", x)
         x = self.mlp(x)
-
-        return self.out(self.layer_norm(x))
+        x = torch.einsum("btm->bmt", x)
+        x = self.inverse_spectral_fn(x)
+        return x

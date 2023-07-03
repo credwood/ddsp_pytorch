@@ -3,6 +3,7 @@ import torch.nn as nn
 from .core import scale_function, remove_above_nyquist, upsample, midi_to_hz
 from .core import harmonic_synth, amp_to_impulse_response, fft_convolve, pitch_ss_loss
 from .core import resample
+from .conv_lstm import ConvLSTM
 from .encoders import MfccTimeDistributedRnnEncoder, EncoderConfig
 from .resnet import ResNetAutoencoder, ResNetEncoderConfig
 from .decoders import RnnFcDecoder, DecoderConfig
@@ -58,7 +59,7 @@ class Autoencoder(nn.Module):
 
 class DDSP(nn.Module):
     def __init__(self, hidden_size=512, sampling_rate=16000,
-                 block_size=256, n_midi=128, pitch_encoder=None,
+                 block_size=256, n_bins=128, pitch_encoder=None,
                  autoencoder=Autoencoder
                  ):
         super().__init__()
@@ -72,6 +73,8 @@ class DDSP(nn.Module):
         if pitch_encoder == ResNetAutoencoder:
             self.pitch_encoder = ResNetAutoencoder(**dict(ResNetEncoderConfig))
             self.pitch_sigmoid = nn.Sigmoid()
+        elif pitch_encoder == ConvLSTM:
+            self.pitch_encoder = ConvLSTM(n_bins=n_bins)
         else:
             self.pitch_encoder = None
         self.autoencoder = autoencoder()
@@ -82,9 +85,13 @@ class DDSP(nn.Module):
     def forward(self, s, pitch=None, loudness=None):
         if isinstance(self.pitch_encoder, ResNetAutoencoder):
             raise NotImplementedError("training for ResNet not implemented")
-        else:
-            assert pitch is not None, "must pass f0 value"
-
+        elif isinstance(self.pitch_encoder, ConvLSTM):
+            raise NotImplementedError("training for ConvLSTM not implemented")
+            # pitch = self.pitch_encoder(s)
+            # TODO: either figure out a ss method
+            # or use CREPE as ground truth
+        else: 
+            assert pitch is not None, "must pass f0 value for supervized f0 encoding"
         multi=False
         amp_param, noise_param = self.autoencoder(pitch, loudness, s)
 

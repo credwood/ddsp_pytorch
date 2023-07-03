@@ -2,6 +2,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import yaml
 from ddsp.model import DDSP
+from ddsp.conv_lstm import ConvLSTM
 from effortless_config import Config
 from os import path
 from preprocess import Dataset
@@ -17,6 +18,7 @@ class args(Config):
     CONFIG = "config.yaml"
     NAME = "debug"
     ROOT = "../drive/MyDrive/runs_resnet_softmax"
+    MODEL = ConvLSTM
     STEPS = 500000
     BATCH = 16
     START_LR = 1e-3
@@ -34,7 +36,10 @@ def main():
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model = DDSP(**config["model"]).to(device)
+    if args.MODEL == ConvLSTM:
+        model = ConvLSTM()
+    else:
+        model = DDSP(**config["model"]).to(device)
 
     if args.LOAD_FROM_CHECKPOINT:
         model.load_state_dict(torch.load(args.CHECKPOINT))
@@ -86,8 +91,10 @@ def main():
 
             #l = (l - mean_loudness) / std_loudness this seems to produce worse results than no standardization
             #p = 
-
-            y = model(s, p, l)
+            if args.MODEL == ConvLSTM:
+                y = model(s)
+            else:
+                y = model(s, p, l)
             y = y.squeeze(-1)
             y = y[:, :s.shape[-1]]
             ori_stft = multiscale_fft(
