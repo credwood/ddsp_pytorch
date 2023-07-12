@@ -155,13 +155,6 @@ class ConvLSTM(nn.Module):
             f_min=20.0,
             f_max=8000.0, 
         )
-        self.inverse_spectral_fn = T.InverseMelScale(
-            n_stft=1024 // 2 + 1,
-            n_mels=self.n_mels,
-            sample_rate=16000,
-            f_min=20.0,
-            f_max=8000.0, 
-        )
 
         dim = self.mlp_config["dim_in"]
         self.layer_norm = nn.LayerNorm(dim)
@@ -176,6 +169,5 @@ class ConvLSTM(nn.Module):
         x = self.conv_block(x)
         x = torch.einsum("bmt->btm", x)
         x = self.mlp(x)
-        x = torch.einsum("btm->bmt", x)
-        x = self.inverse_spectral_fn(x)
+        x = self.out(self.layer_norm(x))
         return x
